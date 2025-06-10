@@ -6,37 +6,32 @@ const int jtag_tms = 24; // JTAG_TMS
 const int jtag_tdi = 26; // JTAG_TDI
 const int jtag_tdo = 28; // JTAG_TDO
 
-void send_tms(size_t len, uint32_t data) {
+void send_tms(size_t len, uint32_t data, uint32_t delay_in_ms) {
   for (size_t i = 0; i < len; i++) {    
     uint8_t bit = data & 0x01;
     data >>= 1;
     digitalWrite(jtag_clk, LOW);
     digitalWrite(jtag_tms, bit ? HIGH : LOW);
-    //delay(2);
     digitalWrite(jtag_clk, HIGH);
-    //delay(2);
+
+    delay(delay_in_ms);
   }
 }
 
-void shift_data(size_t len, uint32_t* in_data, uint32_t* read_data, uint8_t tms_data) {
+void shift_data(size_t len, uint32_t* in_data, uint32_t* read_data, uint8_t tms_data, uint32_t delay_in_ms) {
   digitalWrite(jtag_clk, LOW);
-  //delay(10);
   for (size_t i = 0; i < len; i++) {
     uint8_t bit = *in_data & 0x01;
     *in_data >>= 1;      
     digitalWrite(jtag_tms, tms_data);
     digitalWrite(jtag_tdo, bit);    
     digitalWrite(jtag_clk, HIGH);
-    //delay(2);    
     digitalWrite(jtag_clk, LOW);
-    //delay(2);
     int val = digitalRead(jtag_tdi);
     *read_data >>= 1;
     *read_data |= (val << 7) << 24;
-    //delay(2);
-    //Serial.print(i);
-    //Serial.print(" - ");
-    //Serial.println(val);
+
+    delay(delay_in_ms);
   }
 }
 
@@ -50,12 +45,16 @@ void setup() {
 
   pinMode(jtag_tdi, INPUT);
   pinMode(jtag_tdo, OUTPUT);
+
+  printf("start");
 }
 
 void loop() {
 
   uint32_t in_data = 0x00;
+  uint64_t in_data_long = 0x00;
   uint32_t read_data = 0x00;
+  uint64_t read_data_long = 0x00;
   uint32_t tms_zero = 0x00;
   uint32_t tms_one = 0x01;
   
@@ -129,7 +128,7 @@ void loop() {
   Serial.println(read_data, HEX);
 */
   
-/**/
+/*
   // Test 4 - reading the BYPASS register, to count devices
   //
   printf("TEST 4 - Start ...\n"); delay(200);
@@ -145,7 +144,8 @@ void loop() {
 
   delay(4000);
   
-  // Start to load 1s into all instruction registers of all devices in the entire JTAG chain because an IR register filled with
+  // Start to load 1s into all instruction registers of all devices 
+  // in the entire JTAG chain because an IR register filled with
   // all 1s is the BYPASS instruction.
   for (int i = 0; i < 9; i++) {
     
@@ -217,7 +217,51 @@ void loop() {
   printf("TEST 4 - K\n"); delay(200);
 
   printf("device count: %d\n", counter);
+  */
 
+
+  // Test 5 - read and write the dmi register (0x11)
+
+  // reset to TEST_LOGIC_RESET
+  printf("To TEST_LOGIC_RESET\n");
+  send_tms(5, 0b11111, 1000);
+
+  // to SHIFT_IR
+  printf("To SHIFT_IR\n");
+  send_tms(5, 0b00110, 1000);
+
+  // load SHIFT_IR with IDCODE of the dmi register
+  printf("Load IR with dmi register instruction\n");
+  in_data = 0x00000011;
+  read_data = 0x00;  
+  shift_data(31, &in_data, &read_data, tms_zero, 10);
+  shift_data(1, &in_data, &read_data, tms_one, 10); // on the last bit, transition to EXIT1_IR by using a tms of 1
+  
+  // capture IR and shift into IR data (transition over CAPTURE IR) and enter SHIFT_DR
+  printf("Enter SHIFT_DR\n");
+  send_tms(6, 0b001110, 1000);
+
+  // current state: SHIFT_DR. STEP: shift in 44 bits and stay in SHIFT_DR
+  in_data = 0x01234567;
+  read_data = 0x00;
+  shift_data(32, &in_data, &read_data, tms_zero, 10);
+  in_data = 0x89A;
+  read_data = 0x00;
+  shift_data(12, &in_data, &read_data, tms_zero, 10);
+
+  // current state: SHIFT_DR. STEP: shift in 44 bits and stay in SHIFT_DR
+  in_data = 0x00000000;
+  read_data = 0x00;
+  shift_data(32, &in_data, &read_data, tms_zero, 10);
+  Serial.println("LO:");
+  Serial.println(read_data, HEX);
+  in_data = 0x89A;
+  read_data = 0x00;
+  shift_data(12, &in_data, &read_data, tms_zero, 10);
+  Serial.println("HI:");
+  Serial.println(read_data, HEX);
+  
+  
 
   delay(3000);
 
