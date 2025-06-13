@@ -262,6 +262,7 @@ void loop() {
   Serial.println(read_data, HEX);
   */
   
+  /*
   // Test 6 - read and write the dmi register (0x11)
 
   // reset to TEST_LOGIC_RESET
@@ -298,25 +299,63 @@ void loop() {
   // last step shifts in data and leaves the state at the same time
   in_data = 0x00;
   read_data = 0x00;
-  shift_data(11, &in_data, &read_data, tms_one, 10);
+  shift_data(1, &in_data, &read_data, tms_one, 10);
 
-
+  // enter UPDATE_DR because this triggers the actual write operation towards the wishbone slave
   printf("Enter UPDATE_DR\n");
   send_tms(3, 0b000110, 1000);
+  */
 
-  /*
+
+  // Test 7 - read and write the dtm.dmi_register (0x11) in order to write to the dm.dm_control register (0x10)
+
+  printf("TEST 7\n");
+
+  // reset to TEST_LOGIC_RESET
+  printf("To TEST_LOGIC_RESET\n");
+  send_tms(5, 0b11111, 1000);
+
+  // to SHIFT_IR
+  printf("To SHIFT_IR\n");
+  send_tms(5, 0b00110, 1000);
+
+  // load SHIFT_IR with IDCODE of the dmi register (= 0x11)
+  printf("Load IR with dmi register instruction\n");
+  in_data = 0x00000011;
+  read_data = 0x00;  
+  shift_data(31, &in_data, &read_data, tms_zero, 10);
+  shift_data(1, &in_data, &read_data, tms_one, 10); // on the last bit, transition to EXIT1_IR by using a tms of 1
+  
+  // capture IR and shift into IR data (transition over CAPTURE IR) and enter SHIFT_DR
+  printf("Enter SHIFT_DR\n");
+  send_tms(6, 0b001110, 1000);
+
   // current state: SHIFT_DR. STEP: shift in 44 bits and stay in SHIFT_DR
-  in_data = 0x00000000;
+  //
+  // [Addr, 10 bit][Data, 32 bit][Operation, 2bit]
+  // 0x10           0x01          01 (read) == 0x4000000005 == 0x[040][00000005] <--------- READ OPERATION
+  // 0x10           0x01          10 (write) == 0x4000000006 == 0x[040][00000006] <--------- WRITE OPERATION
+  // 0x10           0x15          10 (write) == 0x4000000056 == 0x[040][00000056] <--------- WRITE OPERATION
+  //
+  // LO
+  in_data = 0x00000056;
   read_data = 0x00;
   shift_data(32, &in_data, &read_data, tms_zero, 10);
-  Serial.println("LO:");
-  Serial.println(read_data, HEX);
-  in_data = 0x89A;
+
+  //
+  // HI
+  in_data = 0x040;
   read_data = 0x00;
-  shift_data(12, &in_data, &read_data, tms_zero, 10);
-  Serial.println("HI:");
-  Serial.println(read_data, HEX);
-  */
+  shift_data(11, &in_data, &read_data, tms_zero, 10);
+
+  // last step shifts in data and leaves the state at the same time
+  in_data = 0x00;
+  read_data = 0x00;
+  shift_data(1, &in_data, &read_data, tms_one, 10);
+
+  // enter UPDATE_DR because this triggers the actual write operation towards the wishbone slave
+  printf("Enter UPDATE_DR\n");
+  send_tms(3, 0b000110, 1000);
 
   delay(3000);
 
