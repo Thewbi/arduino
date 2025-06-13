@@ -219,7 +219,7 @@ void loop() {
   printf("device count: %d\n", counter);
   */
 
-
+  /*
   // Test 5 - read and write the dmi register (0x11)
 
   // reset to TEST_LOGIC_RESET
@@ -260,8 +260,63 @@ void loop() {
   shift_data(12, &in_data, &read_data, tms_zero, 10);
   Serial.println("HI:");
   Serial.println(read_data, HEX);
+  */
   
+  // Test 6 - read and write the dmi register (0x11)
+
+  // reset to TEST_LOGIC_RESET
+  printf("To TEST_LOGIC_RESET\n");
+  send_tms(5, 0b11111, 1000);
+
+  // to SHIFT_IR
+  printf("To SHIFT_IR\n");
+  send_tms(5, 0b00110, 1000);
+
+  // load SHIFT_IR with IDCODE of the dmi register
+  printf("Load IR with dmi register instruction\n");
+  in_data = 0x00000011;
+  read_data = 0x00;  
+  shift_data(31, &in_data, &read_data, tms_zero, 10);
+  shift_data(1, &in_data, &read_data, tms_one, 10); // on the last bit, transition to EXIT1_IR by using a tms of 1
   
+  // capture IR and shift into IR data (transition over CAPTURE IR) and enter SHIFT_DR
+  printf("Enter SHIFT_DR\n");
+  send_tms(6, 0b001110, 1000);
+
+  // current state: SHIFT_DR. STEP: shift in 44 bits and stay in SHIFT_DR
+  //
+  // [Addr, 10 bit][Data, 32 bit][Operation, 2bit]
+  // 0x00           0x00          01 (write)
+  //
+  // HI
+  in_data = 0x00000001;
+  read_data = 0x00;
+  shift_data(32, &in_data, &read_data, tms_zero, 10);
+  in_data = 0x00;
+  read_data = 0x00;
+  shift_data(11, &in_data, &read_data, tms_zero, 10);
+  // last step shifts in data and leaves the state at the same time
+  in_data = 0x00;
+  read_data = 0x00;
+  shift_data(11, &in_data, &read_data, tms_one, 10);
+
+
+  printf("Enter UPDATE_DR\n");
+  send_tms(3, 0b000110, 1000);
+
+  /*
+  // current state: SHIFT_DR. STEP: shift in 44 bits and stay in SHIFT_DR
+  in_data = 0x00000000;
+  read_data = 0x00;
+  shift_data(32, &in_data, &read_data, tms_zero, 10);
+  Serial.println("LO:");
+  Serial.println(read_data, HEX);
+  in_data = 0x89A;
+  read_data = 0x00;
+  shift_data(12, &in_data, &read_data, tms_zero, 10);
+  Serial.println("HI:");
+  Serial.println(read_data, HEX);
+  */
 
   delay(3000);
 
