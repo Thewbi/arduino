@@ -1,3 +1,7 @@
+//
+// PINS
+//
+
 const int ledPin = 13; // led pin
 
 const int jtag_clk = 22; // JTAG_CLK
@@ -5,6 +9,23 @@ const int jtag_tms = 24; // JTAG_TMS
 
 const int jtag_tdi = 26; // JTAG_TDI
 const int jtag_tdo = 28; // JTAG_TDO
+
+//
+// INTERFACE
+//
+
+const uint8_t STX = 0x02;
+const uint8_t ETX = 0x03;
+
+const int STATE_IDLE = 0;
+const int STATE_STX = 1;
+const int STATE_BODY = 2;
+
+int current_state = STATE_IDLE;
+
+const int RX_BUFFER_SIZE = 32;
+uint8_t rx_buffer[RX_BUFFER_SIZE];
+uint8_t rx_buffer_usage = 0;
 
 void send_tms(size_t len, uint32_t data, uint32_t delay_in_ms) {
   for (size_t i = 0; i < len; i++) {    
@@ -77,9 +98,9 @@ void loop() {
   shift_data(31, &in_data, &read_data, tms_zero);
   shift_data(1, &in_data, &read_data, tms_one);
   Serial.println(read_data, HEX);
- */
+  */
 
-/*
+  /*
   // TEST 2 - shift out the IR register (IDCODE: 0x0A0B0C0D)
   // at the same time shift in 0x0A0B0C0D and read it back
   //
@@ -98,9 +119,9 @@ void loop() {
   read_data = 0x00;
   shift_data(32, &in_data, &read_data, tms_zero);
   Serial.println(read_data, HEX);
-*/
+  */
 
-/*
+  /*
   // TEST 3 - shift out the custom register 1 (IDCODE: 0x0A0B0C0D)
   //
   // EXPECTATION: the value 0x12345678 is printed continuously
@@ -126,9 +147,9 @@ void loop() {
   shift_data(31, &in_data, &read_data, tms_zero);
   shift_data(1, &in_data, &read_data, tms_one);
   Serial.println(read_data, HEX);
-*/
+  */
   
-/*
+  /*
   // Test 4 - reading the BYPASS register, to count devices
   //
   printf("TEST 4 - Start ...\n"); delay(200);
@@ -306,7 +327,7 @@ void loop() {
   send_tms(3, 0b000110, 1000);
   */
 
-
+  /*
   // Test 7 - read and write the dtm.dmi_register (0x11) in order to write to the dm.dm_control register (0x10)
 
   printf("TEST 7\n");
@@ -358,5 +379,85 @@ void loop() {
   send_tms(3, 0b000110, 1000);
 
   delay(3000);
+  */
+
+  int state = STX;
+
+  // send data only when you receive data:
+  if (Serial.available() > 0) {
+
+    // read the incoming byte:
+    uint8_t incomingByte = Serial.read();
+
+    // echo
+    //Serial.write(incomingByte);
+
+    switch (current_state) {
+
+      case STATE_IDLE:
+        if (incomingByte == STX) {
+          rx_buffer[rx_buffer_usage++] = incomingByte;
+          current_state = STATE_STX;
+        }
+        break;
+
+      case STATE_STX:
+        if (incomingByte == STX) {
+          // nop
+        } else if (incomingByte == ETX) {
+          rx_buffer_usage = 0;
+          current_state = STATE_IDLE;
+        } else {
+          rx_buffer[rx_buffer_usage++] = incomingByte;
+          current_state = STATE_BODY;
+        }
+        break;
+
+      case STATE_BODY:
+        if (incomingByte == STX) {
+          rx_buffer_usage = 0;
+          rx_buffer[rx_buffer_usage++] = incomingByte;
+          current_state = STATE_STX;
+        } else if (incomingByte == ETX) {
+          // add ETX if possible
+          if (rx_buffer_usage == RX_BUFFER_SIZE) {
+            Serial.write(0xFF);
+            Serial.write(0xFE);
+            Serial.write(0xFD);
+            Serial.write(0xFC);
+            rx_buffer_usage = 0;
+            current_state = STATE_IDLE;
+          } else {
+            rx_buffer[rx_buffer_usage++] = incomingByte;
+            current_state = STATE_BODY;
+          }
+          // emit
+          for (int i = 0; i < rx_buffer_usage; i++) {
+            Serial.write(rx_buffer[i]);
+          }
+          // reset
+          rx_buffer_usage = 0;
+          current_state = STATE_IDLE;
+        } else {
+          if (rx_buffer_usage == RX_BUFFER_SIZE) {
+            Serial.write(0xFF);
+            Serial.write(0xFE);
+            Serial.write(0xFD);
+            Serial.write(0xFC);
+            rx_buffer_usage = 0;
+            current_state = STATE_IDLE;
+          } else {
+            rx_buffer[rx_buffer_usage++] = incomingByte;
+            current_state = STATE_BODY;
+          }
+        }
+        break;
+
+    }
+
+    // say what you got:
+    //Serial.print("I received: ");
+    //Serial.println(incomingByte, HEX);
+  }
 
 }
