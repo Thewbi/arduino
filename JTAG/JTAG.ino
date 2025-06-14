@@ -40,44 +40,61 @@ void emit();
 
 void send_tms(size_t len, uint32_t data, uint32_t delay_in_ms) {
   
-  Serial.print("send_tms len: ");
-  Serial.print(len, DEC);
-  Serial.print(" data: ");
-  Serial.println(data, DEC);
+  //Serial.print("send_tms len: ");
+  //Serial.print(len, DEC);
+  //Serial.print(" data: ");
+  //Serial.println(data, DEC);
 
   for (size_t i = 0; i < len; i++) {    
     uint8_t bit = data & 0x01;
     data >>= 1;
-    digitalWrite(jtag_clk, LOW);
-    digitalWrite(jtag_tms, bit ? HIGH : LOW);
-    digitalWrite(jtag_clk, HIGH);
 
     delay(delay_in_ms);
+    digitalWrite(jtag_clk, LOW);
+
+    digitalWrite(jtag_tms, bit ? HIGH : LOW);
+
+    delay(delay_in_ms);
+    digitalWrite(jtag_clk, HIGH);
+    
+    //delay(100);
+    
   }
+
+  digitalWrite(jtag_clk, LOW);
 }
 
 void shift_data(size_t len, uint32_t* in_data, uint32_t* read_data, uint8_t tms_data, uint32_t delay_in_ms) {
 
-  Serial.print("shift_data len: ");
-  Serial.print(len, DEC);
-  Serial.print(" in_data: ");
-  Serial.print(((uint32_t)*in_data), DEC);
-  Serial.print(" tms_data: ");
-  Serial.println(tms_data, DEC);
+  //Serial.print("shift_data len: ");
+  //Serial.print(len, DEC);
+  //Serial.print(" in_data: ");
+  //Serial.print(((uint32_t)*in_data), DEC);
+  //Serial.print(" tms_data: ");
+  //Serial.println(tms_data, DEC);
 
   digitalWrite(jtag_clk, LOW);
   for (size_t i = 0; i < len; i++) {
+
     uint8_t bit = *in_data & 0x01;
-    *in_data >>= 1;      
+    *in_data >>= 1;
+
+      
     digitalWrite(jtag_tms, tms_data);
-    digitalWrite(jtag_tdo, bit);    
+    digitalWrite(jtag_tdo, bit);
+
+    delay(delay_in_ms); 
     digitalWrite(jtag_clk, HIGH);
+
+    delay(delay_in_ms);
     digitalWrite(jtag_clk, LOW);
+
+    delay(delay_in_ms);
     int val = digitalRead(jtag_tdi);
     *read_data >>= 1;
     *read_data |= (val << 7) << 24;
 
-    delay(delay_in_ms);
+    //delay(100);
   }
 }
 
@@ -600,7 +617,7 @@ void emit() {
       Serial.println(bits_to_execute, DEC);
 
       // execute
-      send_tms(number_bits_to_execute, bits_to_execute, 10);
+      send_tms(number_bits_to_execute, bits_to_execute, 3);
 
       
 
@@ -626,12 +643,12 @@ void emit() {
       Serial.println(tms, DEC);
 
       // execute
-      shift_data(number_bits_to_shift, &in_data, &out_data, tms, 10);
+      shift_data(number_bits_to_shift, &in_data, &out_data, tms, 3);
 
-      //Serial.write((out_data >> 24) & 0xFF);
-      //Serial.write((out_data >> 16) & 0xFF);
-      //Serial.write((out_data >> 8) & 0xFF);
-      //Serial.write((out_data >> 0) & 0xFF);
+      Serial.write((out_data >> 24) & 0xFF);
+      Serial.write((out_data >> 16) & 0xFF);
+      Serial.write((out_data >> 8) & 0xFF);
+      Serial.write((out_data >> 0) & 0xFF);
 
       break;
 
