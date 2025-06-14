@@ -31,12 +31,20 @@ uint8_t rx_buffer_emit = 0;
 uint8_t rx_buffer_emit_size = 0;
 
 const uint8_t COMMAND_PING = 0x00;
+const uint8_t RESPONSE_PING = 0x50;
 const uint8_t COMMAND_SEND_TMS = 0x01;
 const uint8_t COMMAND_SHIFT_DATA = 0x02;
+const uint8_t RESULT_OK = 0x00;
 
 void emit();
 
 void send_tms(size_t len, uint32_t data, uint32_t delay_in_ms) {
+  
+  Serial.print("send_tms len: ");
+  Serial.print(len, DEC);
+  Serial.print(" data: ");
+  Serial.println(data, DEC);
+
   for (size_t i = 0; i < len; i++) {    
     uint8_t bit = data & 0x01;
     data >>= 1;
@@ -49,6 +57,14 @@ void send_tms(size_t len, uint32_t data, uint32_t delay_in_ms) {
 }
 
 void shift_data(size_t len, uint32_t* in_data, uint32_t* read_data, uint8_t tms_data, uint32_t delay_in_ms) {
+
+  Serial.print("shift_data len: ");
+  Serial.print(len, DEC);
+  Serial.print(" in_data: ");
+  Serial.print(((uint32_t)*in_data), DEC);
+  Serial.print(" tms_data: ");
+  Serial.println(tms_data, DEC);
+
   digitalWrite(jtag_clk, LOW);
   for (size_t i = 0; i < len; i++) {
     uint8_t bit = *in_data & 0x01;
@@ -343,11 +359,11 @@ void loop() {
 
   // reset to TEST_LOGIC_RESET
   printf("To TEST_LOGIC_RESET\n");
-  send_tms(5, 0b11111, 1000);
+  send_tms(5, 0b11111, 10);
 
   // to SHIFT_IR
   printf("To SHIFT_IR\n");
-  send_tms(5, 0b00110, 1000);
+  send_tms(5, 0b00110, 10);
 
   // load SHIFT_IR with IDCODE of the dmi register (= 0x11)
   printf("Load IR with dmi register instruction\n");
@@ -358,7 +374,7 @@ void loop() {
   
   // capture IR and shift into IR data (transition over CAPTURE IR) and enter SHIFT_DR
   printf("Enter SHIFT_DR\n");
-  send_tms(6, 0b001110, 1000);
+  send_tms(6, 0b001110, 10);
 
   // current state: SHIFT_DR. STEP: shift in 44 bits and stay in SHIFT_DR
   //
@@ -366,33 +382,35 @@ void loop() {
   // 0x10           0x01          01 (read) == 0x4000000005 == 0x[040][00000005] <--------- READ OPERATION
   // 0x10           0x01          10 (write) == 0x4000000006 == 0x[040][00000006] <--------- WRITE OPERATION
   // 0x10           0x15          10 (write) == 0x4000000056 == 0x[040][00000056] <--------- WRITE OPERATION
+  // 0x10           0x80000000    10 (write) == 0x4200000002 == 0x[042][00000002] <--------- WRITE OPERATION
   //
   // LO
-  in_data = 0x00000056;
+  in_data = 0x00000002;
   read_data = 0x00;
   shift_data(32, &in_data, &read_data, tms_zero, 10);
 
   //
   // HI
-  in_data = 0x040;
+  in_data = 0x042;
   read_data = 0x00;
   shift_data(11, &in_data, &read_data, tms_zero, 10);
 
   // last step shifts in data and leaves the state at the same time
-  in_data = 0x00;
-  read_data = 0x00;
+  //in_data = 0x00;
+  //read_data = 0x00;
   shift_data(1, &in_data, &read_data, tms_one, 10);
 
   // enter UPDATE_DR because this triggers the actual write operation towards the wishbone slave
   printf("Enter UPDATE_DR\n");
-  send_tms(3, 0b000110, 1000);
+  send_tms(3, 0b000110, 10);
 
   delay(3000);
   */
 
+/**/
   int state = STX;
 
-  // send data only when you receive data:
+  // parse message and emit
   if (Serial.available() > 0) {
 
     // read the incoming byte:
@@ -481,11 +499,13 @@ void loop() {
     //Serial.println(incomingByte, HEX);
   }  
 
+//delay(100);
+
 }
 
 void emit() {
 
-  //// DEBUG
+  //// DEBUG - encoded
   //for (int i = 0; i < rx_buffer_emit_size; i++) {
   //  Serial.write(rx_buffer[i]);        
   //}
@@ -505,18 +525,30 @@ void emit() {
         break;
 
       case 0x82:
-        escape_active = 0;
-        decode_buffer[decode_buffer_usage++] = 0x02;
+        if (escape_active) {
+          escape_active = 0;
+          decode_buffer[decode_buffer_usage++] = 0x02;
+        } else {
+          decode_buffer[decode_buffer_usage++] = rx_buffer[i];
+        }
         break;
 
       case 0x83:
-        escape_active = 0;
-        decode_buffer[decode_buffer_usage++] = 0x03;
+        if (escape_active) {
+          escape_active = 0;
+          decode_buffer[decode_buffer_usage++] = 0x03;
+        } else {
+          decode_buffer[decode_buffer_usage++] = rx_buffer[i];
+        }
         break;
 
       case 0x8A:
-        escape_active = 0;
-        decode_buffer[decode_buffer_usage++] = 0x0A;
+        if (escape_active) {
+          escape_active = 0;
+          decode_buffer[decode_buffer_usage++] = 0x0A;
+        } else {
+          decode_buffer[decode_buffer_usage++] = rx_buffer[i];
+        }
         break;
 
       case STX:
@@ -530,30 +562,91 @@ void emit() {
     }
   }
 
+  //// DEBUG - output decoded
+  //for (int i = 0; i < decode_buffer_usage; i++) {
+  //  Serial.write(decode_buffer[i]);        
+  //}
+
+  uint32_t number_bits_to_execute = 0;
+  uint32_t bits_to_execute = 0;
+
+  size_t number_bits_to_shift = 0;
+  uint32_t in_data = 0;
+  uint8_t tms = 0;
+
+  uint32_t out_data = 0;
+
   // 1. Parse command (0x00 = ping, 0x01 = send_tms, 0x02 = shift_data)
   switch (decode_buffer[0]) {
 
     case COMMAND_PING:
-      Serial.write(COMMAND_PING);
+      Serial.println("COMMAND_PING");
+
+      // answer with a pong (0x50 ASCII P as in (P)ong), we are alive after all!
+      //Serial.write(RESPONSE_PING);
       break;
 
     case COMMAND_SEND_TMS:
-      Serial.write(COMMAND_SEND_TMS);
+      
+
+      // parameter 0 - number_bits_to_execute
+      number_bits_to_execute = decode_buffer[1] << 24 | decode_buffer[2] << 16 | decode_buffer[3] << 8 | decode_buffer[4] << 0;
+      // parameter 1 - bits_to_execute
+      bits_to_execute = decode_buffer[5] << 24 | decode_buffer[6] << 16 | decode_buffer[7] << 8 | decode_buffer[8] << 0;
+
+      Serial.print("COMMAND_SEND_TMS bits: ");
+      Serial.print(number_bits_to_execute, DEC);
+      Serial.print(" bits_to_execute: ");
+      Serial.println(bits_to_execute, DEC);
+
+      // execute
+      send_tms(number_bits_to_execute, bits_to_execute, 10);
+
+      
+
+      // answer OK
+      //Serial.write(RESULT_OK);
       break;
 
     case COMMAND_SHIFT_DATA:
-      Serial.write(COMMAND_SHIFT_DATA);
+      //Serial.println("COMMAND_SHIFT_DATA");
+
+      // parameter 0 - in_data - data to shift in (uint32_t)
+      number_bits_to_shift = decode_buffer[1] << 24 | decode_buffer[2] << 16 | decode_buffer[3] << 8 | decode_buffer[4] << 0;
+      // parameter 1 - in_data - data to shift in (uint32_t)
+      in_data = decode_buffer[5] << 24 | decode_buffer[6] << 16 | decode_buffer[7] << 8 | decode_buffer[8] << 0;
+      // parameter 2 - bits_to_execute
+      tms = decode_buffer[9];
+
+      Serial.print("COMMAND_SHIFT_DATA number_bits_to_shift: ");
+      Serial.print(number_bits_to_shift, DEC);
+      Serial.print(" in_data: ");
+      Serial.print(in_data, DEC);
+      Serial.print(" tms: ");
+      Serial.println(tms, DEC);
+
+      // execute
+      shift_data(number_bits_to_shift, &in_data, &out_data, tms, 10);
+
+      //Serial.write((out_data >> 24) & 0xFF);
+      //Serial.write((out_data >> 16) & 0xFF);
+      //Serial.write((out_data >> 8) & 0xFF);
+      //Serial.write((out_data >> 0) & 0xFF);
+
       break;
 
     default:
-      Serial.write(0xFF);
-      Serial.write(0xFE);
-      Serial.write(0xFD);
-      Serial.write(0xFC);
+      //Serial.write(0xFC);
+      //Serial.write(0xFD);
+      //Serial.write(0xFE);
+      //Serial.write(0xFF);
+      Serial.println("UNKNOWN");
       break;
 
   }
   // 1. Pass bytes to handler for that command
   // 1. Handler parses parameters and executes the command
   // 1. Handler sends response
+
 }
+
