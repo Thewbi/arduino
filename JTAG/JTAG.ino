@@ -16,16 +16,25 @@ const int jtag_tdo = 28; // JTAG_TDO
 
 const uint8_t STX = 0x02;
 const uint8_t ETX = 0x03;
+const uint8_t ESCAPE_MARKER = 0x0A;
 
-const int STATE_IDLE = 0;
-const int STATE_STX = 1;
-const int STATE_BODY = 2;
+const uint8_t STATE_IDLE = 0;
+const uint8_t STATE_STX = 1;
+const uint8_t STATE_BODY = 2;
 
-int current_state = STATE_IDLE;
+uint8_t current_state = STATE_IDLE;
 
-const int RX_BUFFER_SIZE = 32;
+const uint8_t RX_BUFFER_SIZE = 32;
 uint8_t rx_buffer[RX_BUFFER_SIZE];
 uint8_t rx_buffer_usage = 0;
+uint8_t rx_buffer_emit = 0;
+uint8_t rx_buffer_emit_size = 0;
+
+const uint8_t COMMAND_PING = 0x00;
+const uint8_t COMMAND_SEND_TMS = 0x01;
+const uint8_t COMMAND_SHIFT_DATA = 0x02;
+
+void emit();
 
 void send_tms(size_t len, uint32_t data, uint32_t delay_in_ms) {
   for (size_t i = 0; i < len; i++) {    
@@ -432,9 +441,12 @@ void loop() {
             current_state = STATE_BODY;
           }
           // emit
-          for (int i = 0; i < rx_buffer_usage; i++) {
-            Serial.write(rx_buffer[i]);
-          }
+          rx_buffer_emit = 1;
+          rx_buffer_emit_size = rx_buffer_usage;
+          //// emit
+          //for (int i = 0; i < rx_buffer_usage; i++) {
+          //  Serial.write(rx_buffer[i]);
+          //}
           // reset
           rx_buffer_usage = 0;
           current_state = STATE_IDLE;
@@ -455,9 +467,93 @@ void loop() {
 
     }
 
+    if (rx_buffer_emit) {      
+
+      emit();
+
+      // reset emit data
+      rx_buffer_emit = 0;
+      rx_buffer_emit_size = 0;
+    }
+
     // say what you got:
     //Serial.print("I received: ");
     //Serial.println(incomingByte, HEX);
+  }  
+
+}
+
+void emit() {
+
+  //// DEBUG
+  //for (int i = 0; i < rx_buffer_emit_size; i++) {
+  //  Serial.write(rx_buffer[i]);        
+  //}
+
+  int decode_buffer_usage = 0;
+  int decode_buffer[RX_BUFFER_SIZE];
+  int escape_active = 0;
+
+  // 1. Remove STX, ETX for an individually received message from the stream
+  // 1. Decode: 0x0A 0x82 => 0x02, 0x0A 0x83 => 03, 0x0A 0x8A => 0x0A
+  for (int i = 0; i < rx_buffer_emit_size; i++) {
+
+    switch (rx_buffer[i]) {
+
+      case ESCAPE_MARKER:
+        escape_active = 1;
+        break;
+
+      case 0x82:
+        escape_active = 0;
+        decode_buffer[decode_buffer_usage++] = 0x02;
+        break;
+
+      case 0x83:
+        escape_active = 0;
+        decode_buffer[decode_buffer_usage++] = 0x03;
+        break;
+
+      case 0x8A:
+        escape_active = 0;
+        decode_buffer[decode_buffer_usage++] = 0x0A;
+        break;
+
+      case STX:
+      case ETX:
+        continue;
+
+      default:
+        decode_buffer[decode_buffer_usage++] = rx_buffer[i];
+        break;
+
+    }
   }
 
+  // 1. Parse command (0x00 = ping, 0x01 = send_tms, 0x02 = shift_data)
+  switch (decode_buffer[0]) {
+
+    case COMMAND_PING:
+      Serial.write(COMMAND_PING);
+      break;
+
+    case COMMAND_SEND_TMS:
+      Serial.write(COMMAND_SEND_TMS);
+      break;
+
+    case COMMAND_SHIFT_DATA:
+      Serial.write(COMMAND_SHIFT_DATA);
+      break;
+
+    default:
+      Serial.write(0xFF);
+      Serial.write(0xFE);
+      Serial.write(0xFD);
+      Serial.write(0xFC);
+      break;
+
+  }
+  // 1. Pass bytes to handler for that command
+  // 1. Handler parses parameters and executes the command
+  // 1. Handler sends response
 }
