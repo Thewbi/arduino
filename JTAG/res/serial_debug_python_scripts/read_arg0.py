@@ -7,6 +7,9 @@ import serial.tools.list_ports
 
 
 
+#sleep_duration = 0.0
+sleep_duration = 0.3
+
 
 myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
 print(myports)
@@ -21,7 +24,7 @@ ser.flushOutput()
 # Give the Arduino some time to boot!
 # Then use the connection without closing it if you want the arduino to keep state
 # At the end, disconnect.
-time.sleep(2) # Sleep for the arduino to boot
+time.sleep(0.5) # Sleep for the arduino to boot
 
 #packet = bytearray()
 #packet.append(0x02)
@@ -46,7 +49,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 1 - reset to TEST_LOGIC_RESET (wait a couple of seconds, device will return 0x00 (RESULT_OK)
 # send_tms(5, 0b11111, 1000);
@@ -57,7 +60,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
     
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 2 - to SHIFT_IR
 # send_tms(5, 0b00110, 1000);
@@ -68,7 +71,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
     
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 3 - load SHIFT_IR with IDCODE of the dmi register (= 0x11)
 # in_data = 0x00000011;
@@ -82,7 +85,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 4 -
 #     \h(02 0A 82 00 00 00 01 00 00 00 00 01 03)
@@ -92,7 +95,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 5 - capture IR shift into IR data (transition over CAPTURE IR) and finally into SHIFT_DR
 # send_tms(6, 0b001110, 1000);
@@ -103,7 +106,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 6 - write the first 32 of 44 bits into DTM.DMI_COMMAND
 #
@@ -134,7 +137,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 7 - write another 11 bits into into DTM.DMI_COMMAND
 # in_data = 0x042;
@@ -148,7 +151,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 8 - Write the last bit into DTM.DMI_COMMAND and transition out of that state
 #
@@ -164,7 +167,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # TEST: SHIFT DATA OUT AGAIN
 #\h(02 0A 82 00 00 00 20 7C 7C 7C 7E 00 03)
