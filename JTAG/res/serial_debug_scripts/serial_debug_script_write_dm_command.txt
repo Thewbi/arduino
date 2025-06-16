@@ -49,7 +49,8 @@
 // read_data = 0x00;
 // shift_data(32, &in_data, &read_data, tms_zero, 10);
 // [STX] [CMD] [NUMBER_OF_BITS_TO_SHIFT] [BITS_TO_SHIFT] [TMS_VALUE] [ETX]
-\h(02 0A 82 00 00 00 20 00 00 00 0A 82 00 03)
+\h(02 0A 82 00 00 00 20 08 84 00 0A 82 00 03)
+//\h(02 0A 82 00 00 00 20 00 00 00 0A 82 00 03)
 
 // 7 - write another 11 bits into into DTM.DMI_COMMAND
 // in_data = 0x042;

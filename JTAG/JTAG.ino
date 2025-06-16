@@ -131,11 +131,26 @@ void shift_data(size_t len, uint32_t* in_data, uint32_t* read_data, uint8_t tms_
   }
 }
 
+// OLED draw byte
+void oled_printf_byte(uint8_t data) {
+
+  
+
+  char buffer[10]; // Buffer to hold the formatted string
+  //int hexValue = 0xA5; // Example hex value
+  sprintf(buffer, "0x%X", data); 
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0); // Set cursor position
+  display.println(buffer); // Print the formatted string
+  display.display(); // Update the display
+}
+
 // OLED draw text
 void oled_printf(char* data) {
 
   display.clearDisplay();
-
   display.setTextSize(1);      // Normal 1:1 pixel scale
   display.setTextColor(SSD1306_WHITE); // Draw white text
   display.setCursor(0, 0);     // Start at top-left corner
@@ -200,7 +215,7 @@ void setup() {
   // drawing operations and then update the screen all at once by calling
   // display.display().
 */
-  Serial.println("Waiting for input.");
+  //Serial.println("Waiting for input.");
 }
 
 void loop() {
@@ -515,8 +530,20 @@ void loop() {
   delay(3000);
   */
 
+/*
+  // DEBUG - debug the serial connection
+  if (Serial.available() > 0) {
+
+    // read the incoming byte:
+    uint8_t incomingByte = Serial.read();
+
+    oled_printf_byte(incomingByte);
+  }
+
+  delay(1000);
+*/
+
 /**/
-  //int state = STX;
 
   // parse message and emit
   if (Serial.available() > 0) {
@@ -591,10 +618,7 @@ void loop() {
           // emit
           rx_buffer_emit = 1;
           rx_buffer_emit_size = rx_buffer_usage;
-          //// emit
-          //for (int i = 0; i < rx_buffer_usage; i++) {
-          //  Serial.write(rx_buffer[i]);
-          //}
+          
           // reset
           rx_buffer_usage = 0;
           current_state = STATE_IDLE;
@@ -632,9 +656,7 @@ void loop() {
     // say what you got:
     //Serial.print("I received: ");
     //Serial.println(incomingByte, HEX);
-  }  
-
-//delay(100);
+  }
 
 }
 
