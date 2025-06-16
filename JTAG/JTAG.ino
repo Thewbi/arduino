@@ -1,8 +1,40 @@
 //
+// Trouble Shooting:
+//
+// Close all Arduino IDEs and only have a single one open in order 
+// to prevent the IDEs and your terminal emulator to compete for 
+// the COM port to the Arduino DUE.
+//
+
+//
+// Include
+//
+
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+//
 // PINS
 //
 
 const int ledPin = 13; // led pin
+
+//
+// OLED i2c Display
+//
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+//
+// JTAG
+//
 
 const int jtag_clk = 22; // JTAG_CLK
 const int jtag_tms = 24; // JTAG_TMS
@@ -21,6 +53,7 @@ const uint8_t ESCAPE_MARKER = 0x0A;
 const uint8_t STATE_IDLE = 0;
 const uint8_t STATE_STX = 1;
 const uint8_t STATE_BODY = 2;
+const uint8_t STATE_ERROR = 3;
 
 uint8_t current_state = STATE_IDLE;
 
@@ -98,7 +131,26 @@ void shift_data(size_t len, uint32_t* in_data, uint32_t* read_data, uint8_t tms_
   }
 }
 
+// OLED draw text
+void oled_printf(char* data) {
+
+  display.clearDisplay();
+
+  display.setTextSize(1);      // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.setCursor(0, 0);     // Start at top-left corner
+  display.cp437(true);         // Use full 256 char 'Code Page 437' font
+
+  for (int16_t i = 0; i < strlen(data); i++) {
+    display.write(data[i]);
+  }
+
+  display.display();
+  //delay(2000);
+}
+
 void setup() {
+
   Serial.begin(9600);
 
   pinMode(ledPin, OUTPUT);
@@ -109,7 +161,46 @@ void setup() {
   pinMode(jtag_tdi, INPUT);
   pinMode(jtag_tdo, OUTPUT);
 
-  printf("start");
+/**/
+  // OLED
+
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    //Serial.println(F("SSD1306 allocation failed"));
+    Serial.println("failed");
+    for(;;); // Don't proceed, loop forever
+  }
+
+  /*
+  // Show initial display buffer contents on the screen --
+  // the library initializes this with an Adafruit splash screen.
+  display.display();
+  delay(2000); // Pause for 2 seconds
+  */
+
+  oled_printf("Waiting for input.");
+  //delay(2000);
+
+/*
+  // Clear the buffer
+  display.clearDisplay();
+
+  // Draw a single pixel in white
+  display.drawPixel(10, 10, SSD1306_WHITE);
+
+  // Show the display buffer on the screen. You MUST call display() after
+  // drawing commands to make them visible on screen!
+  display.display();
+  delay(2000);
+*/
+
+/*
+  // display.display() is NOT necessary after every single drawing command,
+  // unless that's what you want...rather, you can batch up a bunch of
+  // drawing operations and then update the screen all at once by calling
+  // display.display().
+*/
+  Serial.println("Waiting for input.");
 }
 
 void loop() {
@@ -425,7 +516,7 @@ void loop() {
   */
 
 /**/
-  int state = STX;
+  //int state = STX;
 
   // parse message and emit
   if (Serial.available() > 0) {
@@ -437,6 +528,9 @@ void loop() {
     //Serial.write(incomingByte);
 
     switch (current_state) {
+
+      case STATE_ERROR:
+        break;
 
       case STATE_IDLE:
         if (incomingByte == STX) {
@@ -454,6 +548,8 @@ void loop() {
         } else {
           rx_buffer[rx_buffer_usage++] = incomingByte;
           current_state = STATE_BODY;
+
+          oled_printf("[OK]");
         }
         break;
 
@@ -469,6 +565,11 @@ void loop() {
           Serial.write(0xFE);
           Serial.write(0xFD);
           Serial.write(0xFC);
+
+          oled_printf("[ERROR] STX before ETX!");
+
+          // go to error state
+          current_state = STATE_ERROR;
         } else if (incomingByte == ETX) {
           // add ETX if possible
           if (rx_buffer_usage == RX_BUFFER_SIZE) {
@@ -478,6 +579,11 @@ void loop() {
             Serial.write(0xFC);
             rx_buffer_usage = 0;
             current_state = STATE_IDLE;
+
+            oled_printf("[ERROR] STX before ETX!");
+
+            // go to error state
+            current_state = STATE_ERROR;
           } else {
             rx_buffer[rx_buffer_usage++] = incomingByte;
             current_state = STATE_BODY;
@@ -493,6 +599,7 @@ void loop() {
           rx_buffer_usage = 0;
           current_state = STATE_IDLE;
         } else {
+          // check for buffer overrun, else add character
           if (rx_buffer_usage == RX_BUFFER_SIZE) {
             Serial.write(0xFF);
             Serial.write(0xFE);
@@ -500,13 +607,17 @@ void loop() {
             Serial.write(0xFC);
             rx_buffer_usage = 0;
             current_state = STATE_IDLE;
+
+            oled_printf("[ERROR] Buffer Overrun!");
+
+            // go to error state
+            current_state = STATE_ERROR;
           } else {
             rx_buffer[rx_buffer_usage++] = incomingByte;
             current_state = STATE_BODY;
           }
         }
         break;
-
     }
 
     if (rx_buffer_emit) {      
@@ -600,36 +711,40 @@ void emit() {
 
   uint32_t out_data = 0;
 
+  char buffer[100];
+
   // 1. Parse command (0x00 = ping, 0x01 = send_tms, 0x02 = shift_data)
   switch (decode_buffer[0]) {
 
     case COMMAND_PING:
-      Serial.println("COMMAND_PING");
+      //Serial.println("COMMAND_PING");
+      oled_printf("[OK] COMMAND_PING");
 
       // answer with a pong (0x50 ASCII P as in (P)ong), we are alive after all!
-      //Serial.write(RESPONSE_PING);
+      Serial.write(RESPONSE_PING);
       break;
 
     case COMMAND_SEND_TMS:
-      
-
       // parameter 0 - number_bits_to_execute
       number_bits_to_execute = decode_buffer[1] << 24 | decode_buffer[2] << 16 | decode_buffer[3] << 8 | decode_buffer[4] << 0;
       // parameter 1 - bits_to_execute
       bits_to_execute = decode_buffer[5] << 24 | decode_buffer[6] << 16 | decode_buffer[7] << 8 | decode_buffer[8] << 0;
 
-      Serial.print("COMMAND_SEND_TMS bits: ");
-      Serial.print(number_bits_to_execute, DEC);
-      Serial.print(" bits_to_execute: ");
-      Serial.println(bits_to_execute, DEC);
+      //Serial.print("COMMAND_SEND_TMS bits: ");
+      //Serial.print(number_bits_to_execute, DEC);
+      //Serial.print(" bits_to_execute: ");
+      //Serial.println(bits_to_execute, DEC);
+
+      memset(buffer, 0 , 100);
+      sprintf((char *)buffer, "COMMAND_SEND_TMS bits: %d bits_to_execute: %d", number_bits_to_execute, bits_to_execute);
+
+      oled_printf(buffer);
 
       // execute
-      send_tms(number_bits_to_execute, bits_to_execute, 3);
-
-      
+      send_tms(number_bits_to_execute, bits_to_execute, 3);     
 
       // answer OK
-      //Serial.write(RESULT_OK);
+      Serial.write(RESULT_OK);
       break;
 
     case COMMAND_SHIFT_DATA:
@@ -642,16 +757,24 @@ void emit() {
       // parameter 2 - bits_to_execute
       tms = decode_buffer[9];
 
+/*
       Serial.print("COMMAND_SHIFT_DATA number_bits_to_shift: ");
       Serial.print(number_bits_to_shift, DEC);
       Serial.print(" in_data: ");
       Serial.print(in_data, DEC);
       Serial.print(" tms: ");
       Serial.println(tms, DEC);
+      */
+
+      memset(buffer, 0 , 100);
+      sprintf((char *)buffer, "COMMAND_SHIFT_DATA number_bits_to_shift: %d in_data: %d tms: %d", number_bits_to_shift, in_data, tms);
+
+      oled_printf(buffer);
 
       // execute
       shift_data(number_bits_to_shift, &in_data, &out_data, tms, 3);
 
+      // answer with the shifted in data
       Serial.write((out_data >> 24) & 0xFF);
       Serial.write((out_data >> 16) & 0xFF);
       Serial.write((out_data >> 8) & 0xFF);
@@ -664,7 +787,10 @@ void emit() {
       //Serial.write(0xFD);
       //Serial.write(0xFE);
       //Serial.write(0xFF);
-      Serial.println("UNKNOWN");
+      Serial.println("UNKNOWN COMMAND");
+      oled_printf("UNKNOWN COMMAND");
+
+      current_state = STATE_ERROR;
       break;
 
   }
