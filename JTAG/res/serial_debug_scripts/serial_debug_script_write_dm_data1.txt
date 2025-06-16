@@ -1,4 +1,4 @@
-# Test-Script 4 - trigger HALT operation in RISCV-DebugSpec DM
+# Test-Script write dm.data1 register
 
 // 0 - ping (return is pong (0x50))
 \h(02 00 03)

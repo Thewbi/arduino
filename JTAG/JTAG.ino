@@ -459,9 +459,16 @@ void loop() {
 
       case STATE_BODY:
         if (incomingByte == STX) {
+          // STX moves the state machine back to the STX state and purges the buffer!
           rx_buffer_usage = 0;
           rx_buffer[rx_buffer_usage++] = incomingByte;
           current_state = STATE_STX;
+
+          // inform the client about this incomplete message!
+          Serial.write(0xFF);
+          Serial.write(0xFE);
+          Serial.write(0xFD);
+          Serial.write(0xFC);
         } else if (incomingByte == ETX) {
           // add ETX if possible
           if (rx_buffer_usage == RX_BUFFER_SIZE) {

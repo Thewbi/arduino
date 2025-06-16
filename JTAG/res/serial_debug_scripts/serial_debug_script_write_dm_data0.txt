@@ -67,7 +67,6 @@
 //\h(02 0A 82 00 00 00 0B 00 00 00 10 00 03)
 //\h(02 0A 82 00 00 00 01 00 00 00 00 00 03)
 
-
 // 9 - enter UPDATE_DR because this triggers the actual write operation towards the wishbone slave
 //  printf("Enter UPDATE_DR\n");
 //  send_tms(3, 0b000110, 1000);
