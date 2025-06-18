@@ -1,19 +1,13 @@
 # pip install pyserial
 
-
 import serial
 import time
 import serial.tools.list_ports
 
-
-
-#sleep_duration = 0.0
 sleep_duration = 0.3
-
 
 myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
 print(myports)
-
 
 ser = serial.Serial('COM4', baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=None)
 ser.flushInput()
@@ -188,7 +182,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
     
-    
+time.sleep(sleep_duration)
     
 ser.close()
     

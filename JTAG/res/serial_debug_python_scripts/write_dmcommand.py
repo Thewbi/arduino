@@ -1,13 +1,40 @@
+# This script executes an abstract command in DM!
+# It is called write_dmcommand.py because it writes an abstract command into the DM.command register.
+# The abstract command itself can be a read or a write abstract command.
+#
+# The abstract command (read or write memory) is placed into the DTM.dmi register (= 0x11).
+# The command can be a read or a write memory command.
+#
+# Once placed into the DTM.dmi register (0x11), a wishbone transaction between the JTAG.TAP 
+# as wishbone master and the DM as wishbone slave is started.
+# 
+# The dm.command register (0x17) is filled with an abstract command. In order to do this,
+# the DTM.dmi register (0x11) is filled with a write-operation to the address dmi.command (0x17)
+# and the payload that defines the abstract command (which can be memory read or write).
+#
+# Memory read and write abstract commands require parameters / arguments. 
+# For example a read expects the memory address to read from in arg1.
+# These arguments are not written by this script! (see write_arg0.py, write_arg1.py to write args first before using this script).
+#
+# When the JTAG TAP / DTM sees this command, it will start a wishbone transaction with it's
+# wishbone slave, which is the DM. It will write the abstract command into the DM.command register.
+# This immediately triggers the DM to execute the abstract command.
+#
+# dm.command register (0x17)
+#The DM will execute the command and write a value into arg0.
+
+
 # Test-Script write dm.data1 register
 
-
-
 # pip install pyserial
+
 
 
 import serial
 import time
 import serial.tools.list_ports
+
+sleep_duration = 0.3
 
 myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
 print(myports)
@@ -21,10 +48,9 @@ ser.flushOutput()
 # Give the Arduino some time to boot!
 # Then use the connection without closing it if you want the arduino to keep state
 # At the end, disconnect.
-time.sleep(2) # Sleep for the arduino to boot
+time.sleep(0.5) # Sleep for the arduino to boot
 
-
-time.sleep(1)
+#time.sleep(sleep_duration)
 
 # 0 - ping (return is pong (0x50))
 #     \h(02 00 03)
@@ -34,7 +60,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 1 - reset to TEST_LOGIC_RESET (wait a couple of seconds, device will return 0x00 (RESULT_OK)
 # send_tms(5, 0b11111, 1000);
@@ -45,7 +71,7 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 2 - to SHIFT_IR
 # send_tms(5, 0b00110, 1000);
@@ -56,9 +82,9 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
-# 3 - load SHIFT_IR with IDCODE of the dmi register (= 0x11)
+# 3 - load SHIFT_IR with IDCODE of the DTM.DMI_COMMAND register (= 0x11)
 # in_data = 0x00000011;
 # read_data = 0x00;  
 # shift_data(31, &in_data, &read_data, tms_zero, 10);
@@ -70,26 +96,28 @@ while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
+time.sleep(sleep_duration)
+
 # 4 -
 #     \h(02 0A 82 00 00 00 01 00 00 00 00 01 03)
-input = '02 0A 82 00 00 00 01 00 00 00 00 01 03'    
+input = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
 ser.write(bytes.fromhex(input))
 while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 5 - capture IR shift into IR data (transition over CAPTURE IR) and finally into SHIFT_DR
 # send_tms(6, 0b001110, 1000);
 #     \h(02 01 00 00 00 06 00 00 00 0E 03)
-input = '02 01 00 00 00 06 00 00 00 0E 03'    
+input = '02 01 00 00 00 06 00 00 00 0E 03'
 ser.write(bytes.fromhex(input))
 while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 6 - write the first 32 of 44 bits into DTM.DMI_COMMAND
 #
@@ -117,13 +145,14 @@ time.sleep(1)
 # shift_data(32, &in_data, &read_data, tms_zero, 10);
 # [STX] [CMD] [NUMBER_OF_BITS_TO_SHIFT] [BITS_TO_SHIFT] [TMS_VALUE] [ETX]
 #     \h(02 0A 82 00 00 00 20 08 84 00 0A 82 00 03)
-input = '02 0A 82 00 00 00 20 08 84 00 0A 82 00 03'    
+input = '02 0A 82 00 00 00 20 08 84 00 0A 82 00 03'
+#input = '02 0A 82 00 00 00 20 00 00 00 0A 82 00 03'
 ser.write(bytes.fromhex(input))
 while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 7 - write another 11 bits into into DTM.DMI_COMMAND
 # in_data = 0x042;
@@ -131,13 +160,13 @@ time.sleep(1)
 # shift_data(11, &in_data, &read_data, tms_zero, 10);
 # [STX] [CMD] [NUMBER_OF_BITS_TO_SHIFT] [BITS_TO_SHIFT] [TMS_VALUE] [ETX]
 #     \h(02 0A 82 00 00 00 0B 00 00 00 5C 00 03)
-input = '02 0A 82 00 00 00 0B 00 00 00 5C 00 03'    
+input = '02 0A 82 00 00 00 0B 00 00 00 5C 00 03'
 ser.write(bytes.fromhex(input))
 while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # 8 - Write the last bit into DTM.DMI_COMMAND and transition out of that state
 #
@@ -147,13 +176,13 @@ time.sleep(1)
 # shift_data(1, &in_data, &read_data, tms_one, 10);
 # [STX] [CMD] [NUMBER_OF_BITS_TO_SHIFT] [BITS_TO_SHIFT] [TMS_VALUE] [ETX]
 #     \h(02 0A 82 00 00 00 01 00 00 00 00 01 03)
-input = '02 0A 82 00 00 00 01 00 00 00 00 01 03'    
+input = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
 ser.write(bytes.fromhex(input))
 while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
 
-time.sleep(1)
+time.sleep(sleep_duration)
 
 # TEST: SHIFT DATA OUT AGAIN
 #\h(02 0A 82 00 00 00 20 7C 7C 7C 7E 00 03)
@@ -173,3 +202,7 @@ ser.write(bytes.fromhex(input))
 while ser.inWaiting():
     in_hex = ser.read().hex()
     print(in_hex)
+
+time.sleep(sleep_duration)
+    
+ser.close()
