@@ -88,10 +88,7 @@ void send_tms(size_t len, uint32_t data, uint32_t delay_in_ms) {
     digitalWrite(jtag_tms, bit ? HIGH : LOW);
 
     delay(delay_in_ms);
-    digitalWrite(jtag_clk, HIGH);
-    
-    //delay(100);
-    
+    digitalWrite(jtag_clk, HIGH);    
   }
 
   digitalWrite(jtag_clk, LOW);
@@ -111,7 +108,6 @@ void shift_data(size_t len, uint32_t* in_data, uint32_t* read_data, uint8_t tms_
 
     uint8_t bit = *in_data & 0x01;
     *in_data >>= 1;
-
       
     digitalWrite(jtag_tms, tms_data);
     digitalWrite(jtag_tdo, bit);
@@ -126,8 +122,6 @@ void shift_data(size_t len, uint32_t* in_data, uint32_t* read_data, uint8_t tms_
     int val = digitalRead(jtag_tdi);
     *read_data >>= 1;
     *read_data |= (val << 7) << 24;
-
-    //delay(100);
   }
 }
 
@@ -587,7 +581,7 @@ void loop() {
           rx_buffer[rx_buffer_usage++] = incomingByte;
           current_state = STATE_STX;
 
-          // inform the client about this incomplete message!
+          // inform the client about an error (incomplete message)
           Serial.write(0xFF);
           Serial.write(0xFE);
           Serial.write(0xFD);
@@ -600,6 +594,8 @@ void loop() {
         } else if (incomingByte == ETX) {
           // add ETX if possible
           if (rx_buffer_usage == RX_BUFFER_SIZE) {
+            
+            // inform the client about an error (second STX before ETX)
             Serial.write(0xFF);
             Serial.write(0xFE);
             Serial.write(0xFD);
@@ -625,6 +621,7 @@ void loop() {
         } else {
           // check for buffer overrun, else add character
           if (rx_buffer_usage == RX_BUFFER_SIZE) {
+            // inform the client about an error (buffer overrun)
             Serial.write(0xFF);
             Serial.write(0xFE);
             Serial.write(0xFD);
@@ -744,6 +741,7 @@ void emit() {
 
       // answer with a pong (0x50 ASCII P as in (P)ong), we are alive after all!
       Serial.write(RESPONSE_PING);
+      oled_printf("[OK] COMMAND_PING DONE");
       break;
 
     case COMMAND_SEND_TMS:
@@ -763,7 +761,7 @@ void emit() {
       oled_printf(buffer);
 
       // execute
-      send_tms(number_bits_to_execute, bits_to_execute, 3);     
+      send_tms(number_bits_to_execute, bits_to_execute, 100);     
 
       // answer OK
       Serial.write(RESULT_OK);
@@ -794,7 +792,7 @@ void emit() {
       oled_printf(buffer);
 
       // execute
-      shift_data(number_bits_to_shift, &in_data, &out_data, tms, 3);
+      shift_data(number_bits_to_shift, &in_data, &out_data, tms, 100);
 
       // answer with the shifted in data
       Serial.write((out_data >> 24) & 0xFF);
