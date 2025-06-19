@@ -58,6 +58,8 @@ time.sleep(startup_sleep_duration) # Sleep for the arduino to boot after it is r
 print("0 ----------- PING PONG -----------")
 time.sleep(sleep_duration)
 
+
+'''
 # 0 - ping
 # Test: return is pong (0x50)
 #     \h(02 00 03)
@@ -82,6 +84,7 @@ print(in_hex)
 print("received: ", byte_count)
 
 # UP TO HERE 1 = 1 bits (first bit is power on glitch)
+'''
 
 print("1 ----------- 5 Bits ----------")
 time.sleep(sleep_duration)
@@ -149,6 +152,14 @@ print(in_hex)
 print("received: ", byte_count)
 
 # UP TO HERE 5 = 5 bits (first bit is power on glitch)
+
+
+
+##
+## Purpose of 3 and 4 is to shift the code for the DMI_INSTRUCTION 32'h00000011 
+## into the IR register, so that the DTM.dmi register becomes
+## the current data register and can be filled with data
+##
 
 
 print("3 ----------- 31 Bits --- (remain in SHIFT_IR, 0x0B) ----")
