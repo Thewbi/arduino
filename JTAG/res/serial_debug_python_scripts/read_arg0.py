@@ -39,33 +39,91 @@ time.sleep(0.5) # Sleep for the arduino to boot
 #     \h(02 00 03)
 input = '02 00 03'    
 ser.write(bytes.fromhex(input))
-while ser.inWaiting():
-    in_hex = ser.read().hex()
-    print(in_hex)
+print("a")
+byte_count = 0
+in_hex = bytearray()
+response_received = 0
+while response_received == 0:
+    while ser.inWaiting():
+        byte_count += ser.inWaiting()
+        print("received: ", byte_count)
+        xx = ser.read()
+        in_hex.extend(xx)
+        response_received = 1
+    time.sleep(0.1)    
+print("b")
+
+
+
+
 
 time.sleep(sleep_duration)
+
+
+
+
 
 # 1 - reset to TEST_LOGIC_RESET (wait a couple of seconds, device will return 0x00 (RESULT_OK)
 # send_tms(5, 0b11111, 1000);
 #     \h(02 01 00 00 00 05 00 00 00 1F 03)
 input = '02 01 00 00 00 05 00 00 00 1F 03'    
 ser.write(bytes.fromhex(input))
-while ser.inWaiting():
-    in_hex = ser.read().hex()
-    print(in_hex)
+
+print("a")
+byte_count = 0
+in_hex = bytearray()
+response_received = 0
+while response_received == 0:
+    while ser.inWaiting():
+        byte_count += ser.inWaiting()
+        print("received: ", byte_count)
+        xx = ser.read()
+        in_hex.extend(xx)
+        response_received = 1
+    time.sleep(0.1)    
+print("b")
     
+
+
+
+
+
 time.sleep(sleep_duration)
+
+
+
+
 
 # 2 - to SHIFT_IR
 # send_tms(5, 0b00110, 1000);
 #     \h(02 01 00 00 00 05 00 00 00 06 03)
 input = '02 01 00 00 00 05 00 00 00 06 03'    
 ser.write(bytes.fromhex(input))
-while ser.inWaiting():
-    in_hex = ser.read().hex()
-    print(in_hex)
+
+print("a")
+byte_count = 0
+in_hex = bytearray()
+response_received = 0
+while response_received == 0:
+    while ser.inWaiting():
+        byte_count += ser.inWaiting()
+        print("received: ", byte_count)
+        xx = ser.read()
+        in_hex.extend(xx)
+        response_received = 1
+    time.sleep(0.1)    
+print("b")
+
+
+
+
     
 time.sleep(sleep_duration)
+
+
+
+
+
 
 # 3 - load SHIFT_IR with IDCODE of the dmi register (= 0x11)
 # in_data = 0x00000011;
@@ -75,32 +133,92 @@ time.sleep(sleep_duration)
 #     \h(02 0A 82 00 00 00 1F 00 00 00 11 00 03)
 input = '02 0A 82 00 00 00 1F 00 00 00 11 00 03'    
 ser.write(bytes.fromhex(input))
-while ser.inWaiting():
-    in_hex = ser.read().hex()
-    print(in_hex)
+
+print("a")
+byte_count = 0
+in_hex = bytearray()
+response_received = 0
+while response_received == 0:
+    while ser.inWaiting():
+        byte_count += ser.inWaiting()
+        print("received: ", byte_count)
+        xx = ser.read()
+        in_hex.extend(xx)
+        response_received = 1
+    time.sleep(0.1)    
+print("b")
+
+
+
+
+
 
 time.sleep(sleep_duration)
+
+
+
+
+
+
 
 # 4 -
 #     \h(02 0A 82 00 00 00 01 00 00 00 00 01 03)
 input = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
 ser.write(bytes.fromhex(input))
-while ser.inWaiting():
-    in_hex = ser.read().hex()
-    print(in_hex)
+print("a")
+byte_count = 0
+in_hex = bytearray()
+response_received = 0
+while response_received == 0:
+    while ser.inWaiting():
+        byte_count += ser.inWaiting()
+        print("received: ", byte_count)
+        xx = ser.read()
+        in_hex.extend(xx)
+        response_received = 1
+    time.sleep(0.1)    
+print("b")
+
+
+
+
 
 time.sleep(sleep_duration)
+
+
+
+
+
 
 # 5 - capture IR shift into IR data (transition over CAPTURE IR) and finally into SHIFT_DR
 # send_tms(6, 0b001110, 1000);
 #     \h(02 01 00 00 00 06 00 00 00 0E 03)
 input = '02 01 00 00 00 06 00 00 00 0E 03'
 ser.write(bytes.fromhex(input))
-while ser.inWaiting():
-    in_hex = ser.read().hex()
-    print(in_hex)
+print("a")
+byte_count = 0
+in_hex = bytearray()
+response_received = 0
+while response_received == 0:
+    while ser.inWaiting():
+        byte_count += ser.inWaiting()
+        print("received: ", byte_count)
+        xx = ser.read()
+        in_hex.extend(xx)
+        response_received = 1
+    time.sleep(0.1)    
+print("b")
+
+
+
+
 
 time.sleep(sleep_duration)
+
+
+
+
+
 
 # 6 - write the first 32 of 44 bits into DTM.DMI_COMMAND
 #
@@ -127,11 +245,30 @@ time.sleep(sleep_duration)
 #     \h(02 0A 82 00 00 00 20 00 00 00 01 00 03)
 input = '02 0A 82 00 00 00 20 00 00 00 01 00 03'
 ser.write(bytes.fromhex(input))
-while ser.inWaiting():
-    in_hex = ser.read().hex()
-    print(in_hex)
+print("a")
+byte_count = 0
+in_hex = bytearray()
+response_received = 0
+while response_received == 0:
+    while ser.inWaiting():
+        byte_count += ser.inWaiting()
+        print("received: ", byte_count)
+        xx = ser.read()
+        in_hex.extend(xx)
+        response_received = 1
+    time.sleep(0.1)    
+print("b")
+
+
+
+
 
 time.sleep(sleep_duration)
+
+
+
+
+
 
 # 7 - write another 11 bits into into DTM.DMI_COMMAND
 # in_data = 0x042;
@@ -141,11 +278,30 @@ time.sleep(sleep_duration)
 #     \h(02 0A 82 00 00 00 0B 00 00 00 10 00 03)
 input = '02 0A 82 00 00 00 0B 00 00 00 10 00 03'
 ser.write(bytes.fromhex(input))
-while ser.inWaiting():
-    in_hex = ser.read().hex()
-    print(in_hex)
+print("a")
+byte_count = 0
+in_hex = bytearray()
+response_received = 0
+while response_received == 0:
+    while ser.inWaiting():
+        byte_count += ser.inWaiting()
+        print("received: ", byte_count)
+        xx = ser.read()
+        in_hex.extend(xx)
+        response_received = 1
+    time.sleep(0.1)    
+print("b")
+
+
+
+
 
 time.sleep(sleep_duration)
+
+
+
+
+
 
 # 8 - Write the last bit into DTM.DMI_COMMAND and transition out of that state
 #
@@ -157,11 +313,30 @@ time.sleep(sleep_duration)
 #     \h(02 0A 82 00 00 00 01 00 00 00 00 01 03)
 input = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
 ser.write(bytes.fromhex(input))
-while ser.inWaiting():
-    in_hex = ser.read().hex()
-    print(in_hex)
+print("a")
+byte_count = 0
+in_hex = bytearray()
+response_received = 0
+while response_received == 0:
+    while ser.inWaiting():
+        byte_count += ser.inWaiting()
+        print("received: ", byte_count)
+        xx = ser.read()
+        in_hex.extend(xx)
+        response_received = 1
+    time.sleep(0.1)    
+print("b")
+
+
+
+
 
 time.sleep(sleep_duration)
+
+
+
+
+
 
 # TEST: SHIFT DATA OUT AGAIN
 #\h(02 0A 82 00 00 00 20 7C 7C 7C 7E 00 03)
@@ -178,11 +353,29 @@ time.sleep(sleep_duration)
 #     \h(02 01 00 00 00 0A 83 00 00 00 06 03)
 input = '02 01 00 00 00 0A 83 00 00 00 06 03'
 ser.write(bytes.fromhex(input))
-while ser.inWaiting():
-    in_hex = ser.read().hex()
-    print(in_hex)
+print("a")
+byte_count = 0
+in_hex = bytearray()
+response_received = 0
+while response_received == 0:
+    while ser.inWaiting():
+        byte_count += ser.inWaiting()
+        print("received: ", byte_count)
+        xx = ser.read()
+        in_hex.extend(xx)
+        response_received = 1
+    time.sleep(0.1)    
+print("b")
+
+
+
+
     
 time.sleep(sleep_duration)
+
+
+
+
     
 ser.close()
     
