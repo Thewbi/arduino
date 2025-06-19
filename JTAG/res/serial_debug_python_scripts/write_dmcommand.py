@@ -61,8 +61,8 @@ time.sleep(sleep_duration)
 # 0 - ping
 # Test: return is pong (0x50)
 #     \h(02 00 03)
-input = '02 00 03'    
-ser.write(bytes.fromhex(input))
+data = '02 00 03'    
+ser.write(bytes.fromhex(data))
 
 # read
 print("a")
@@ -80,46 +80,56 @@ while response_received == 0:
 print("b")
 print(in_hex)
 print("received: ", byte_count)
+
+# UP TO HERE 1 = 1 bits (first bit is power on glitch)
 
 print("1 ----------- 5 Bits ----------")
 time.sleep(sleep_duration)
 
-# 1 - reset to TEST_LOGIC_RESET (wait a couple of seconds, device will return 0x00 (RESULT_OK)
-# (5 bit)
+for x in range(3):
+    # 1 - reset to TEST_LOGIC_RESET (wait a couple of seconds, device will return 0x00 (RESULT_OK)
+    # (5 bit)
+    #
+    # send_tms(5, 0b11111, 1000);
+    #     \h(02 01 00 00 00 05 00 00 00 1F 03)
+    data = '02 01 00 00 00 05 00 00 00 1F 03'    
+    ser.write(bytes.fromhex(data))
+
+    # read
+    print("a")
+    byte_count = 0
+    in_hex = bytearray()
+    response_received = 0
+    while response_received == 0:
+        while ser.inWaiting():
+            byte_count += ser.inWaiting()
+            print("received: ", byte_count)
+            xx = ser.read()
+            in_hex.extend(xx)
+            response_received = 1
+        time.sleep(0.1)
+    print("b")
+    print(in_hex)
+    print("received: ", byte_count)
+
+# UP TO HERE 0 + 5(+1) = 6 bits (first bit is power on glitch, the additional log output is from the tms command first raising the clock which outputs another tick)
 #
-# send_tms(5, 0b11111, 1000);
-#     \h(02 01 00 00 00 05 00 00 00 1F 03)
-input = '02 01 00 00 00 05 00 00 00 1F 03'    
-ser.write(bytes.fromhex(input))
-
-# read
-print("a")
-byte_count = 0
-in_hex = bytearray()
-response_received = 0
-while response_received == 0:
-    while ser.inWaiting():
-        byte_count += ser.inWaiting()
-        print("received: ", byte_count)
-        xx = ser.read()
-        in_hex.extend(xx)
-        response_received = 1
-    time.sleep(0.1)
-print("b")
-print(in_hex)
-print("received: ", byte_count)
 
 
-print("2 --------- 5 Bits -----------")
+print("START")
 time.sleep(sleep_duration)
+
+print("2 --------- 5 Bits --- (to SHIFT_IR, 0x0B) ----------")
+#time.sleep(sleep_duration)
+name = input("Enter to proceed!\n")
 
 # 2 - to SHIFT_IR
 # (5 bit)
 #
 # send_tms(5, 0b00110, 1000);
 #     \h(02 01 00 00 00 05 00 00 00 06 03)
-input = '02 01 00 00 00 05 00 00 00 06 03'    
-ser.write(bytes.fromhex(input))
+data = '02 01 00 00 00 05 00 00 00 06 03'    
+ser.write(bytes.fromhex(data))
 
 # read
 print("a")
@@ -138,9 +148,12 @@ print("b")
 print(in_hex)
 print("received: ", byte_count)
 
+# UP TO HERE 5 = 5 bits (first bit is power on glitch)
 
-print("3 ----------- 31 Bits ----------")
-time.sleep(sleep_duration)
+
+print("3 ----------- 31 Bits --- (remain in SHIFT_IR, 0x0B) ----")
+#time.sleep(sleep_duration)
+name = input("Enter to proceed!\n")
 
 # 3 - load SHIFT_IR with IDCODE of the DTM.DMI_COMMAND register (= 0x11)
 # (31 bit)
@@ -150,8 +163,8 @@ time.sleep(sleep_duration)
 # shift_data(31, &in_data, &read_data, tms_zero, 10);
 # shift_data(1, &in_data, &read_data, tms_one, 10); // on the last bit, transition to EXIT1_IR by using a tms of 1
 #     \h(02 0A 82 00 00 00 1F 00 00 00 11 00 03)
-input = '02 0A 82 00 00 00 1F 00 00 00 11 00 03'    
-ser.write(bytes.fromhex(input))
+data = '02 0A 82 00 00 00 1F 00 00 00 11 00 03'    
+ser.write(bytes.fromhex(data))
 
 # read
 print("a")
@@ -170,15 +183,19 @@ print("b")
 print(in_hex)
 print("received: ", byte_count)
 
+# UP TO HERE 5 + 31 = 36 bits
 
-print("4 ---------- 1 Bit ----------")
-time.sleep(sleep_duration)
+
+
+print("4 ---------- 1 Bit ---- (to EXIT1_IR, 0x0C) ---")
+#time.sleep(sleep_duration)
+name = input("Enter to proceed!\n")
 
 # 4 - send last bit from load SHIFT_IR with IDCODE of the DTM.DMI_COMMAND register (= 0x11) in order to transition to EXIT1_IR
 # (1 BIT)
 #     \h(02 0A 82 00 00 00 01 00 00 00 00 01 03)
-input = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
-ser.write(bytes.fromhex(input))
+data = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
+ser.write(bytes.fromhex(data))
 
 # read
 print("a")
@@ -197,16 +214,20 @@ print("b")
 print(in_hex)
 print("received: ", byte_count)
 
-print("5 ----------- 6 Bits ---------")
-time.sleep(sleep_duration)
+# UP TO HERE 5 + 31 + 1 = 37 bits
+
+
+print("5 ----------- 6 Bits ---- (to SHIFT_DR, 0x04) --")
+#time.sleep(sleep_duration)
+name = input("Enter to proceed!\n")
 
 # 5 - Transition to SHIFT_DR, capture IR shift into IR data (transition over CAPTURE IR) and finally transition into SHIFT_DR
 # send_tms(6, 0b001110, 1000);
 # 6 bits
 #
 #     \h(02 01 00 00 00 06 00 00 00 0E 03)
-input = '02 01 00 00 00 06 00 00 00 0E 03'
-ser.write(bytes.fromhex(input))
+data = '02 01 00 00 00 06 00 00 00 0E 03'
+ser.write(bytes.fromhex(data))
 
 # read
 print("a")
@@ -225,8 +246,12 @@ print("b")
 print(in_hex)
 print("received: ", byte_count)
 
-print("6 -------- 32 Bits -------------")
-time.sleep(sleep_duration)
+# UP TO HERE 5 + 31 + 1 + 6 = 43 bits (first bit is power on glitch)
+
+
+print("6 -------- 32 Bits ---- (remain in SHIFT_DR, 0x04) ----")
+#time.sleep(sleep_duration)
+name = input("Enter to proceed!\n")
 
 # 6 - write the first 32 of 44 bits into DTM.DMI_COMMAND
 # 32 bits
@@ -259,12 +284,12 @@ time.sleep(sleep_duration)
 # write abstract command 02210000 "which is read from memory". address to read from is expected in DM.arg1 (needs to be written by the write_arg1.py script)
 # This abstract command is wrapped inside a JTAG TAP / DTM dmi register write operation in 
 # order to write the wrapped abstract command into DM's command register 17
-input = '02 0A 82 00 00 00 20 08 84 00 0A 82 00 03'
+data = '02 0A 82 00 00 00 20 08 84 00 0A 82 00 03'
 
 # ???
-#input = '02 0A 82 00 00 00 20 00 00 00 0A 82 00 03'
+#data = '02 0A 82 00 00 00 20 00 00 00 0A 82 00 03'
 
-ser.write(bytes.fromhex(input))
+ser.write(bytes.fromhex(data))
 
 # read
 print("a")
@@ -283,8 +308,9 @@ print("b")
 print(in_hex)
 print("received: ", byte_count)
 
-print("7 ---------- 11 Bits -----------")
-time.sleep(sleep_duration)
+print("7 ---------- 11 Bits --- (remain in SHIFT_DR, 0x04) ----")
+#time.sleep(sleep_duration)
+name = input("Enter to proceed!\n")
 
 # 7 - write another 11 bits into into DTM.DMI_COMMAND
 # 11 bits
@@ -293,8 +319,8 @@ time.sleep(sleep_duration)
 # shift_data(11, &in_data, &read_data, tms_zero, 10);
 # [STX] [CMD] [NUMBER_OF_BITS_TO_SHIFT] [BITS_TO_SHIFT] [TMS_VALUE] [ETX]
 #     \h(02 0A 82 00 00 00 0B 00 00 00 5C 00 03)
-input = '02 0A 82 00 00 00 0B 00 00 00 5C 00 03'
-ser.write(bytes.fromhex(input))
+data = '02 0A 82 00 00 00 0B 00 00 00 5C 00 03'
+ser.write(bytes.fromhex(data))
 
 # read
 print("a")
@@ -312,10 +338,11 @@ print("b")
 print(in_hex)
 print("received: ", byte_count)
 
-print("8 ----------- 1 Bit ----------")
-time.sleep(sleep_duration)
+print("8 ----------- 1 Bit --- (to EXIT1-DR, 0x05) ----")
+#time.sleep(sleep_duration)
+name = input("Enter to proceed!\n")
 
-# 8 - Write the last bit into DTM.DMI_COMMAND and transition out of that state
+# 8 - Write the last bit into DTM.DMI_COMMAND and transition out of that state into EXIT1-DR, 0x05
 # (1 Bit)
 #
 # last step shifts in data and leaves the state at the same time
@@ -324,8 +351,8 @@ time.sleep(sleep_duration)
 # shift_data(1, &in_data, &read_data, tms_one, 10);
 # [STX] [CMD] [NUMBER_OF_BITS_TO_SHIFT] [BITS_TO_SHIFT] [TMS_VALUE] [ETX]
 #     \h(02 0A 82 00 00 00 01 00 00 00 00 01 03)
-input = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
-ser.write(bytes.fromhex(input))
+data = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
+ser.write(bytes.fromhex(data))
 
 # read
 print("a")
@@ -343,8 +370,9 @@ print("b")
 print(in_hex)
 print("received: ", byte_count)
 
-print("9 ---------- 3 Bits ----------")
-time.sleep(sleep_duration)
+print("9 ---------- 3 Bits ---- (to UPDATE_DR, 0x08) ---")
+#time.sleep(sleep_duration)
+name = input("Enter to proceed!\n")
 
 # TEST: SHIFT DATA OUT AGAIN
 #\h(02 0A 82 00 00 00 20 7C 7C 7C 7E 00 03)
@@ -360,8 +388,8 @@ time.sleep(sleep_duration)
 #  printf("Enter UPDATE_DR\n");
 #  send_tms(3, 0b000110, 1000);
 #     \h(02 01 00 00 00 0A 83 00 00 00 06 03)
-input = '02 01 00 00 00 0A 83 00 00 00 06 03'    
-ser.write(bytes.fromhex(input))
+data = '02 01 00 00 00 0A 83 00 00 00 06 03'    
+ser.write(bytes.fromhex(data))
 
 # read
 print("a")
@@ -380,6 +408,6 @@ print(in_hex)
 print("received: ", byte_count)
 
 
-# termiante connection
+# terminate connection
 time.sleep(sleep_duration)  
 ser.close()
