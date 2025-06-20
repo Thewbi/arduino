@@ -4,7 +4,8 @@ import serial
 import time
 import serial.tools.list_ports
 
-sleep_duration = 0.3
+response_duration = 0.1
+sleep_duration = 0.1
 
 myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
 print(myports)
@@ -39,6 +40,7 @@ time.sleep(0.5) # Sleep for the arduino to boot
 #     \h(02 00 03)
 input = '02 00 03'    
 ser.write(bytes.fromhex(input))
+
 print("a")
 byte_count = 0
 in_hex = bytearray()
@@ -50,7 +52,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 
 
@@ -80,7 +82,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
     
 
@@ -111,7 +113,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 
 
@@ -145,7 +147,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 
 
@@ -165,6 +167,7 @@ time.sleep(sleep_duration)
 #     \h(02 0A 82 00 00 00 01 00 00 00 00 01 03)
 input = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
 ser.write(bytes.fromhex(input))
+
 print("a")
 byte_count = 0
 in_hex = bytearray()
@@ -176,7 +179,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 
 
@@ -195,6 +198,7 @@ time.sleep(sleep_duration)
 #     \h(02 01 00 00 00 06 00 00 00 0E 03)
 input = '02 01 00 00 00 06 00 00 00 0E 03'
 ser.write(bytes.fromhex(input))
+
 print("a")
 byte_count = 0
 in_hex = bytearray()
@@ -206,7 +210,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 
 
@@ -245,6 +249,7 @@ time.sleep(sleep_duration)
 #     \h(02 0A 82 00 00 00 20 00 00 00 01 00 03)
 input = '02 0A 82 00 00 00 20 00 00 00 01 00 03'
 ser.write(bytes.fromhex(input))
+
 print("a")
 byte_count = 0
 in_hex = bytearray()
@@ -256,7 +261,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 
 
@@ -278,6 +283,7 @@ time.sleep(sleep_duration)
 #     \h(02 0A 82 00 00 00 0B 00 00 00 10 00 03)
 input = '02 0A 82 00 00 00 0B 00 00 00 10 00 03'
 ser.write(bytes.fromhex(input))
+
 print("a")
 byte_count = 0
 in_hex = bytearray()
@@ -289,7 +295,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 
 
@@ -313,6 +319,7 @@ time.sleep(sleep_duration)
 #     \h(02 0A 82 00 00 00 01 00 00 00 00 01 03)
 input = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
 ser.write(bytes.fromhex(input))
+
 print("a")
 byte_count = 0
 in_hex = bytearray()
@@ -324,7 +331,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 
 
@@ -353,6 +360,7 @@ time.sleep(sleep_duration)
 #     \h(02 01 00 00 00 0A 83 00 00 00 06 03)
 input = '02 01 00 00 00 0A 83 00 00 00 06 03'
 ser.write(bytes.fromhex(input))
+
 print("a")
 byte_count = 0
 in_hex = bytearray()
@@ -364,7 +372,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 
 
@@ -379,19 +387,3 @@ time.sleep(sleep_duration)
     
 ser.close()
     
-"""
-"""
-
-#while True:
-#    in_hex = ser.read().hex()
-#    print(in_hex)
-
-#in_hex = ser.read().hex()
-#print(in_hex)
-
-#time.sleep(0.5) # Sleep for 3 seconds
-
-#res = ser.read()
-
-#print(res)
-#print("my num is 0x{0:02x}".format(res))

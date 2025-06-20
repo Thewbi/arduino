@@ -42,6 +42,8 @@ const int jtag_tms = 24; // JTAG_TMS
 const int jtag_tdi = 26; // JTAG_TDI
 const int jtag_tdo = 28; // JTAG_TDO
 
+#define SLEEP_BETWEEN_BITS_IN_MS 12
+
 //
 // INTERFACE
 //
@@ -366,7 +368,7 @@ void emit() {
       oled_printf(buffer);
 
       // execute
-      send_tms(number_bits_to_execute, bits_to_execute, 100);     
+      send_tms(number_bits_to_execute, bits_to_execute, SLEEP_BETWEEN_BITS_IN_MS);     
 
       // answer OK
       Serial.write(RESULT_OK);
@@ -397,7 +399,7 @@ void emit() {
       oled_printf(buffer);
 
       // execute
-      shift_data(number_bits_to_shift, &in_data, &out_data, tms, 100);
+      shift_data(number_bits_to_shift, &in_data, &out_data, tms, SLEEP_BETWEEN_BITS_IN_MS);
 
       // answer with the shifted in data
       Serial.write((out_data >> 24) & 0xFF);

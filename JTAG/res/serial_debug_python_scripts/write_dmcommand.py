@@ -36,9 +36,11 @@ import serial.tools.list_ports
 
 startup_sleep_duration = 2.0
 
-#sleep_duration = 0.3
+response_duration = 0.1
+
+sleep_duration = 0.3
 #sleep_duration = 0.5
-sleep_duration = 2.0
+#sleep_duration = 2.0
 #sleep_duration = 5.0
 
 myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
@@ -110,7 +112,7 @@ for x in range(3):
             xx = ser.read()
             in_hex.extend(xx)
             response_received = 1
-        time.sleep(0.1)
+        time.sleep(response_duration)
     print("b")
     print(in_hex)
     print("received: ", byte_count)
@@ -146,7 +148,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)
+    time.sleep(response_duration)
 print("b")
 print(in_hex)
 print("received: ", byte_count)
@@ -189,7 +191,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 print(in_hex)
 print("received: ", byte_count)
@@ -220,7 +222,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)
+    time.sleep(response_duration)
 print("b")
 print(in_hex)
 print("received: ", byte_count)
@@ -252,7 +254,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)
+    time.sleep(response_duration)
 print("b")
 print(in_hex)
 print("received: ", byte_count)
@@ -292,7 +294,8 @@ time.sleep(sleep_duration)
 # [STX] [CMD] [NUMBER_OF_BITS_TO_SHIFT] [BITS_TO_SHIFT] [TMS_VALUE] [ETX]
 #     \h(02 0A 82 00 00 00 20 08 84 00 0A 82 00 03)
 
-# write abstract command 02210000 "which is read from memory". address to read from is expected in DM.arg1 (needs to be written by the write_arg1.py script)
+# write abstract command 02210000 "which is read from memory". 
+# address to read from is expected in DM.arg1 (needs to be written by the write_arg1.py script)
 # This abstract command is wrapped inside a JTAG TAP / DTM dmi register write operation in 
 # order to write the wrapped abstract command into DM's command register 17
 data = '02 0A 82 00 00 00 20 08 84 00 0A 82 00 03'
@@ -314,7 +317,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)
+    time.sleep(response_duration)
 print("b")
 print(in_hex)
 print("received: ", byte_count)
@@ -345,7 +348,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)
+    time.sleep(response_duration)
 print("b")
 print(in_hex)
 print("received: ", byte_count)
@@ -378,7 +381,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 print(in_hex)
 print("received: ", byte_count)
@@ -416,7 +419,7 @@ while response_received == 0:
         xx = ser.read()
         in_hex.extend(xx)
         response_received = 1
-    time.sleep(0.1)    
+    time.sleep(response_duration)    
 print("b")
 print(in_hex)
 print("received: ", byte_count)
