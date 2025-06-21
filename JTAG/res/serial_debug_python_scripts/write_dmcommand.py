@@ -262,6 +262,8 @@ print("received: ", byte_count)
 # UP TO HERE 5 + 31 + 1 + 6 = 43 bits (first bit is power on glitch)
 
 
+
+
 print("6 -------- 32 Bits ---- (remain in SHIFT_DR, 0x04) ----")
 time.sleep(sleep_duration)
 #name = input("Enter to proceed!\n")
@@ -355,7 +357,6 @@ print("received: ", byte_count)
 
 print("8 ----------- 1 Bit --- (to EXIT1-DR, 0x05) ----")
 time.sleep(sleep_duration)
-#name = input("Enter to proceed!\n")
 
 # 8 - Write the last bit into DTM.DMI_COMMAND and transition out of that state into EXIT1-DR, 0x05
 # (1 Bit)
@@ -385,6 +386,15 @@ while response_received == 0:
 print("b")
 print(in_hex)
 print("received: ", byte_count)
+
+
+
+
+
+
+
+
+
 
 print("9 ---------- 3 Bits ---- (to UPDATE_DR, 0x08) ---")
 time.sleep(sleep_duration)
@@ -424,6 +434,54 @@ print("b")
 print(in_hex)
 print("received: ", byte_count)
 
+
+'''
+##
+## After a small wait, shift out 32bit of the dmi register to 
+## read the result of the abstract command triggered by the write
+##
+
+print("10 ---------- 3 Bits ---- (from UPDATE_DR (0x08) to SHIFT_DR (0x04) ---")
+time.sleep(3)
+
+# 2 - to SHIFT_DR
+# (5 bit)
+#
+# send_tms(3, 0b001, 1000);
+#     \h(02 01 00 00 00 05 00 00 00 06 03)
+data = '02 01 00 00 00 0A 83 00 00 00 01 03'    
+ser.write(bytes.fromhex(data))
+
+
+
+
+
+print("11 ---------- 32 Bits ---- (Remain in SHIFT_DR (0x04) and shift out 32 bits) ---")
+data = '02 0A 82 00 00 00 20 00 00 00 00 00 03'
+
+# ???
+#data = '02 0A 82 00 00 00 20 00 00 00 0A 82 00 03'
+
+ser.write(bytes.fromhex(data))
+
+# read
+print("a")
+byte_count = 0
+in_hex = bytearray()
+response_received = 0
+while response_received == 0:
+    while ser.inWaiting():
+        byte_count += ser.inWaiting()
+        print("received: ", byte_count)
+        xx = ser.read()
+        in_hex.extend(xx)
+        response_received = 1
+    time.sleep(response_duration)
+print("b")
+
+print(in_hex)
+print("received: ", in_hex, " byte_count: ", byte_count)
+'''
 
 # terminate connection
 time.sleep(sleep_duration)  

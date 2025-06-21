@@ -194,9 +194,7 @@ def main():
     ##
 
     command_address = ADDRESS_OF_DM_DATA_0_REGISTER # 0x04 is register data_0
-    #command_data = 0x1F1F1F1F # value to write into the register
-    command_data = 0x1A000000 # value to write into the register
-    #command_data = 0x1E1F1F1F # value to write into the register
+    command_data = 0x1C000000 # value to write into the register
     command_operator = 0b10 # operation to execute, 10b is write
 
     command_bits = (command_address << 34) | (command_data << 2) | (command_operator << 0);
