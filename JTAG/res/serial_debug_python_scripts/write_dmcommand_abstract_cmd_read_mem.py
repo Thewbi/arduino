@@ -38,6 +38,17 @@ wait_after_boot = 0.5
 response_duration = 0.1
 sleep_duration = 0.5
 
+COMMAND_SHIFT_DATA = 0x02
+
+ADDRESS_OF_DTM_DMI_REGISTER = 0x11
+
+ADDRESS_OF_DM_DATA_0_REGISTER = 0x04
+ADDRESS_OF_DM_DATA_1_REGISTER = 0x05
+ADDRESS_OF_DM_COMMAND_REGISTER = 0x17
+
+
+
+
 def wait_for_response(ser):
     # read
     #print("a")
@@ -56,10 +67,40 @@ def wait_for_response(ser):
     #print(in_hex)
     #print("received: ", byte_count)
 
-#myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
-#print(myports)
+# This function constructs a SHIFT_DATA command (0x02) 
+def create_shift_data_command(payload, amount_of_bits_to_shift, tms):
+    
+    command_32bit_bytearray = bytearray()
+    #command_32bit_bytearray.extend(b'\x02') # STX
+    command_32bit_bytearray.extend(COMMAND_SHIFT_DATA.to_bytes(1, 'big')) # COMMAND (0x02 = shift data)
+    command_32bit_bytearray.extend(amount_of_bits_to_shift.to_bytes(4, 'big')) # Bits to shift
+    command_32bit_bytearray.extend(payload.to_bytes(4, 'big')) # data to shift
+    command_32bit_bytearray.extend(tms.to_bytes(1, 'big')) # TMS Value
+    #command_32bit_bytearray.extend(b'\x03') # ETX
+
+    # print before transfer encoding
+    #print(" ".join("{:02x}".format(b) for b in command_32bit_bytearray))
+
+    # apply transfer bytes
+    command_32bit_bytearray = command_32bit_bytearray.replace(b"\x0A", b"\x0A\x8A").replace(b"\x02", b"\x0A\x82").replace(b"\x03", b"\x0A\x83")
+
+    # print after transfer encoding
+    #print(" ".join("{:02x}".format(b) for b in command_32bit_bytearray))
+
+    # warp in STX, ETX
+    transfer_bytearray = bytearray()
+    transfer_bytearray.extend(b'\x02')
+    transfer_bytearray.extend(command_32bit_bytearray)
+    transfer_bytearray.extend(b'\x03')
+
+    #print(" ".join("{:02x}".format(b) for b in transfer_bytearray))
+    
+    return transfer_bytearray
 
 def main():
+
+    #myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
+    #print(myports)
 
     ser = serial.Serial('COM4', baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=None)
     ser.flushInput()
@@ -215,36 +256,75 @@ def main():
     # [STX] [CMD] [NUMBER_OF_BITS_TO_SHIFT] [BITS_TO_SHIFT] [TMS_VALUE] [ETX]
     #     \h(02 0A 82 00 00 00 20 08 84 00 0A 82 00 03)
 
+    ##
+    ## Here, the 42 bit dtm.command register is filled.
+    ##
+
+    command_address = ADDRESS_OF_DM_COMMAND_REGISTER # 0x04 is register data_0
+    command_data = 0x02210000 # value to write into the register
+    command_operator = 0b10 # operation to execute, 10b is write
+
+    command_bits = (command_address << 34) | (command_data << 2) | (command_operator << 0);
+
+    #print("command_bits is 0x{0:02x}".format(command_bits))
+
+    
+
+    
+
     # write abstract command 02210000 "which is read from memory". 
     # address to read from is expected in DM.arg1 (needs to be written by the write_arg1.py script)
     # This abstract command is wrapped inside a JTAG TAP / DTM dmi register write operation in 
     # order to write the wrapped abstract command into DM's command register 17
-    data = '02 0A 82 00 00 00 20 08 84 00 0A 82 00 03'
+    #data = '02 0A 82 00 00 00 20 08 84 00 0A 82 00 03'
 
     # ???
     #data = '02 0A 82 00 00 00 20 00 00 00 0A 82 00 03'
+    #ser.write(bytes.fromhex(data))
 
-    ser.write(bytes.fromhex(data))
+    command_32bit = command_bits & 0xFFFFFFFF
+    command_bits = command_bits >> 32
+
+    amount_of_bits_to_shift = 32
+    tms = 0x00
+    ser.write(create_shift_data_command(command_32bit, amount_of_bits_to_shift, tms))
 
     # read
     wait_for_response(ser)
+
+
+
 
     print("7 ----------- 11 Bits --- (remain in SHIFT_DR, 0x04) ----")
     time.sleep(sleep_duration)
     #name = input("Enter to proceed!\n")
 
     # 7 - write another 11 bits into into DTM.DMI_COMMAND
-    # 11 bits
+    # 11 bits - bitmask 11111111111 = 0x7FF
     # in_data = 0x042;
     # read_data = 0x00;
     # shift_data(11, &in_data, &read_data, tms_zero, 10);
     # [STX] [CMD] [NUMBER_OF_BITS_TO_SHIFT] [BITS_TO_SHIFT] [TMS_VALUE] [ETX]
     #     \h(02 0A 82 00 00 00 0B 00 00 00 5C 00 03)
-    data = '02 0A 82 00 00 00 0B 00 00 00 5C 00 03'
-    ser.write(bytes.fromhex(data))
+    #data = '02 0A 82 00 00 00 0B 00 00 00 5C 00 03'
+    #ser.write(bytes.fromhex(data))
+
+    command_11bit = command_bits & 0x7FF
+    command_bits = command_bits >> 11
+    #print("command_bits is 0x{0:02x}".format(command_10bit))
+
+    amount_of_bits_to_shift = 11
+    tms = 0x00
+    ser.write(create_shift_data_command(command_11bit, amount_of_bits_to_shift, tms))
+
+    
 
     # read
     wait_for_response(ser)
+
+
+
+
 
     print("8 ----------- 1 Bit --- (to EXIT1-DR, 0x05) ----")
     time.sleep(sleep_duration)
@@ -258,8 +338,17 @@ def main():
     # shift_data(1, &in_data, &read_data, tms_one, 10);
     # [STX] [CMD] [NUMBER_OF_BITS_TO_SHIFT] [BITS_TO_SHIFT] [TMS_VALUE] [ETX]
     #     \h(02 0A 82 00 00 00 01 00 00 00 00 01 03)
-    data = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
-    ser.write(bytes.fromhex(data))
+    #data = '02 0A 82 00 00 00 01 00 00 00 00 01 03'
+    #ser.write(bytes.fromhex(data))
+
+    command_1bit = command_bits & 0x01
+    command_bits = command_bits >> 1
+    #print("command_bits is 0x{0:02x}".format(command_1bit))
+
+    amount_of_bits_to_shift = 1
+    tms = 0x01
+    ser.write(create_shift_data_command(command_1bit, amount_of_bits_to_shift, tms))
+
 
     # read
     wait_for_response(ser)

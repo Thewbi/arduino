@@ -177,7 +177,7 @@ def main():
     ##
 
     command_address = ADDRESS_OF_DM_DATA_0_REGISTER # 0x04 is register data_0
-    command_data = 0x00000005 # value to write into the register
+    command_data = 0x00000006 # value to write into the register
     command_operator = 0b10 # operation to execute, 10b is write
 
     command_bits = (command_address << 34) | (command_data << 2) | (command_operator << 0);
@@ -237,9 +237,9 @@ def main():
     
     time.sleep(sleep_duration)
 
-    command_10bit = command_bits & 0x1FF
+    command_11bit = command_bits & 0x7FF
     command_bits = command_bits >> 11
-    print("command_bits is 0x{0:02x}".format(command_10bit))
+    print("command_bits is 0x{0:02x}".format(command_11bit))
 
     # 7 - write another 11 bits into into dtm.dmi
     # in_data = 0x042;
@@ -252,7 +252,7 @@ def main():
     
     amount_of_bits_to_shift = 11
     tms = 0x00
-    ser.write(create_shift_data_command(command_10bit, amount_of_bits_to_shift, tms))
+    ser.write(create_shift_data_command(command_11bit, amount_of_bits_to_shift, tms))
 
     wait_for_response(ser)
     
