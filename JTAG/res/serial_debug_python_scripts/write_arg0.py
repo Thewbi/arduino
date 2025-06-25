@@ -17,16 +17,15 @@
 #
 # This script is used to fill in an argument into arg0.
 
-
 # pip install pyserial
 
 import serial
 import time
 import serial.tools.list_ports
 
-response_duration = 0.01
-
-sleep_duration = 0.0
+wait_after_boot = 0.5
+response_duration = 0.05
+sleep_duration = 0.1
 
 COMMAND_SHIFT_DATA = 0x02
 
@@ -38,21 +37,21 @@ ADDRESS_OF_DM_COMMAND_REGISTER = 0x17
 
 def wait_for_response(ser):
     # read
-    print("a")
+    #print("a")
     byte_count = 0
     in_hex = bytearray()
     response_received = 0
     while response_received == 0:
         while ser.inWaiting():
             byte_count += ser.inWaiting()
-            print("received: ", byte_count)
+            #print("received: ", byte_count)
             xx = ser.read()
             in_hex.extend(xx)
             response_received = 1
         time.sleep(response_duration)
-    print("b")
-    print(in_hex)
-    print("received: ", byte_count)
+    #print("b")
+    #print(in_hex)
+    #print("received: ", byte_count)
     
 
 # This function constructs a SHIFT_DATA command (0x02) 
@@ -67,13 +66,13 @@ def create_shift_data_command(payload, amount_of_bits_to_shift, tms):
     #command_32bit_bytearray.extend(b'\x03') # ETX
 
     # print before transfer encoding
-    print(" ".join("{:02x}".format(b) for b in command_32bit_bytearray))
+    #print(" ".join("{:02x}".format(b) for b in command_32bit_bytearray))
 
     # apply transfer bytes
     command_32bit_bytearray = command_32bit_bytearray.replace(b"\x0A", b"\x0A\x8A").replace(b"\x02", b"\x0A\x82").replace(b"\x03", b"\x0A\x83")
 
     # print after transfer encoding
-    print(" ".join("{:02x}".format(b) for b in command_32bit_bytearray))
+    #print(" ".join("{:02x}".format(b) for b in command_32bit_bytearray))
 
     # warp in STX, ETX
     transfer_bytearray = bytearray()
@@ -81,15 +80,14 @@ def create_shift_data_command(payload, amount_of_bits_to_shift, tms):
     transfer_bytearray.extend(command_32bit_bytearray)
     transfer_bytearray.extend(b'\x03')
 
-    print(" ".join("{:02x}".format(b) for b in transfer_bytearray))
+    #print(" ".join("{:02x}".format(b) for b in transfer_bytearray))
     
     return transfer_bytearray
     
 def main():
 
-    myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
-    print(myports)
-
+    #myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
+    #print(myports)
 
     ser = serial.Serial('COM4', baudrate=9600, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=None)
     ser.flushInput()
@@ -100,9 +98,9 @@ def main():
     # Give the Arduino some time to boot!
     # Then use the connection without closing it if you want the arduino to keep state
     # At the end, disconnect.
-    time.sleep(0.5) # Sleep for the arduino to boot
+    time.sleep(wait_after_boot) # Sleep for the arduino to boot
 
-    '''
+
     time.sleep(sleep_duration)
 
     # 0 - ping (return is pong (0x50))
@@ -112,23 +110,8 @@ def main():
     input = '02 00 03'    
     ser.write(bytes.fromhex(input))
 
-    # read
-    print("a")
-    byte_count = 0
-    in_hex = bytearray()
-    response_received = 0
-    while response_received == 0:
-        while ser.inWaiting():
-            byte_count += ser.inWaiting()
-            print("received: ", byte_count)
-            xx = ser.read()
-            in_hex.extend(xx)
-            response_received = 1
-        time.sleep(response_duration)
-    print("b")
-    print(in_hex)
-    print("received: ", byte_count)
-    '''
+    wait_for_response(ser)
+    
 
     time.sleep(sleep_duration)
 
@@ -194,7 +177,7 @@ def main():
     ##
 
     command_address = ADDRESS_OF_DM_DATA_0_REGISTER # 0x04 is register data_0
-    command_data = 0x1C000000 # value to write into the register
+    command_data = 0x00000005 # value to write into the register
     command_operator = 0b10 # operation to execute, 10b is write
 
     command_bits = (command_address << 34) | (command_data << 2) | (command_operator << 0);
@@ -278,12 +261,19 @@ def main():
     
     
     
-
+    # write last bit and transition out of SHIFT_DR at the same time
     time.sleep(sleep_duration)
     
     command_1bit = command_bits & 0x01
     command_bits = command_bits >> 1
     print("command_bits is 0x{0:02x}".format(command_1bit))
+
+
+
+
+
+
+
 
     time.sleep(sleep_duration)
 

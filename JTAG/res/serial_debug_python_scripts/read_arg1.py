@@ -160,6 +160,9 @@ def main():
     # read dm.data0 register
     # 0x04           0x00000000    01b (read) == 0x1000000001 == 0x[010][000000001]
     #
+    # read dm.data1 register
+    # 0x05           0x00000000    01b (read) == 0x1000000001 == 0x[014][000000001]
+    #
     # in_data = 0x00000000;
     # read_data = 0x00;
     # shift_data(32, &in_data, &read_data, tms_zero, 10);
@@ -182,7 +185,7 @@ def main():
     # shift_data(11, &in_data, &read_data, tms_zero, 10);
     # [STX] [CMD] [NUMBER_OF_BITS_TO_SHIFT] [BITS_TO_SHIFT] [TMS_VALUE] [ETX]
     #     \h(02 0A 82 00 00 00 0B 00 00 00 10 00 03)
-    input = '02 0A 82 00 00 00 0B 00 00 00 10 00 03'
+    input = '02 0A 82 00 00 00 0B 00 00 00 14 00 03'
     ser.write(bytes.fromhex(input))
 
     wait_for_response(ser)
