@@ -176,8 +176,19 @@ def main():
     ## Here, the 42 bit dtm.command register is filled.
     ##
 
+    # Test:
+    # 1. Write address 0x000004 into data1
+    # 2. Write data 0xCAFEBABE or 0xDEADBEEF into data0
+    # 3. Execute abstract command "write"
+    # 4. Write data 0x00000000 into data0
+    # 5. Execute abstract command "read"
+    # 6. Read data0
+    # Result is: 0xCAFEBABE or 0xDEADBEEF is in data0
+
     command_address = ADDRESS_OF_DM_DATA_0_REGISTER # 0x04 is register data_0
-    command_data = 0x00000006 # value to write into the register
+    command_data = 0x00000000
+    #command_data = 0xCAFEBABE # value to write into the register
+    #command_data = 0xDEADBEEF
     command_operator = 0b10 # operation to execute, 10b is write
 
     command_bits = (command_address << 34) | (command_data << 2) | (command_operator << 0);

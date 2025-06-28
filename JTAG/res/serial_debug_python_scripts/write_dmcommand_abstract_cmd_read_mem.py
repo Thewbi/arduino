@@ -260,8 +260,34 @@ def main():
     ## Here, the 42 bit dtm.command register is filled.
     ##
 
+    # return value (= read value) is in arg0
+    # addr goes into arg1
+
+    ## abstract command
+    cmdtype = 0b00000010            # cmdtype (8)           - 0x02 = cmdtype for "access memory"
+    aamvirtual = 0b0	            # aamvirtual (1)        - no virtual memory translation
+    aamsize = 0b010			        # aamsize (3)           - 2dec means 32 bit data transfer
+    aampostincrement = 0b0          # aampostincrement (1)  - no postincrement
+    not_used_1 = 0b00  	            # not-used (2)          - not used
+    write = 0b1 			        # write (1)             - write = 0, read = 1
+    target_specific = 0b00	        # target-specific (2)   - target specific (not used)
+    not_used_2 = 0b00000000000000   # not-used (14)         - not used
+
+    abstract_command = 0
+    abstract_command = ((abstract_command << 8)  | cmdtype)
+    abstract_command = ((abstract_command << 1)  | aamvirtual)
+    abstract_command = ((abstract_command << 3)  | aamsize)
+    abstract_command = ((abstract_command << 1)  | aampostincrement)
+    abstract_command = ((abstract_command << 2)  | not_used_1)
+    abstract_command = ((abstract_command << 1)  | write)
+    abstract_command = ((abstract_command << 2)  | target_specific)
+    abstract_command = ((abstract_command << 14) | not_used_2)
+
+    print("abstract_command is 0x{0:02x}".format(abstract_command))
+
     command_address = ADDRESS_OF_DM_COMMAND_REGISTER # 0x04 is register data_0
-    command_data = 0x02210000 # value to write into the register
+    #command_data = 0x02210000 # value to write into the register
+    command_data = abstract_command # value to write into the register
     command_operator = 0b10 # operation to execute, 10b is write
 
     command_bits = (command_address << 34) | (command_data << 2) | (command_operator << 0);

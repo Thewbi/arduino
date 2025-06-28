@@ -1,34 +1,7 @@
-# This script executes an abstract command in DM!
-# It is called write_dmcommand.py because it writes an abstract command into the DM.command register.
-# The abstract command itself can be a read or a write abstract command.
-#
-# The abstract command (read or write memory) is placed into the DTM.dmi register (= 0x11).
-# The command can be a read or a write memory command.
-#
-# Once placed into the DTM.dmi register (0x11), a wishbone transaction between the JTAG.TAP 
-# as wishbone master and the DM as wishbone slave is started.
-# 
-# The dm.command register (0x17) is filled with an abstract command. In order to do this,
-# the DTM.dmi register (0x11) is filled with a write-operation to the address dmi.command (0x17)
-# and the payload that defines the abstract command (which can be memory read or write).
-#
-# Memory read and write abstract commands require parameters / arguments. 
-# For example a read expects the memory address to read from in arg1.
-# These arguments are not written by this script! (see write_arg0.py, write_arg1.py to write args first before using this script).
-#
-# When the JTAG TAP / DTM sees this command, it will start a wishbone transaction with it's
-# wishbone slave, which is the DM. It will write the abstract command into the DM.command register.
-# This immediately triggers the DM to execute the abstract command.
-#
-# dm.command register (0x17)
-#The DM will execute the command and write a value into arg0.
-
-
-# Test-Script write dm.data1 register
+# This script write the DM.control register.
+# This can be used to perform a ndmreset (reset all harts)
 
 # pip install pyserial
-
-
 
 import serial
 import time
@@ -44,39 +17,32 @@ ADDRESS_OF_DTM_DMI_REGISTER = 0x11
 
 ADDRESS_OF_DM_DATA_0_REGISTER = 0x04
 ADDRESS_OF_DM_DATA_1_REGISTER = 0x05
+ADDRESS_OF_DM_CONTROL_REGISTER = 0x10
 ADDRESS_OF_DM_COMMAND_REGISTER = 0x17
 
 
 
 
 def wait_for_response(ser):
-    # read
-    #print("a")
     byte_count = 0
     in_hex = bytearray()
     response_received = 0
     while response_received == 0:
         while ser.inWaiting():
             byte_count += ser.inWaiting()
-            #print("received: ", byte_count)
             xx = ser.read()
             in_hex.extend(xx)
             response_received = 1
         time.sleep(response_duration)
-    #print("b")
-    #print(in_hex)
-    #print("received: ", byte_count)
 
 # This function constructs a SHIFT_DATA command (0x02) 
 def create_shift_data_command(payload, amount_of_bits_to_shift, tms):
     
     command_32bit_bytearray = bytearray()
-    #command_32bit_bytearray.extend(b'\x02') # STX
     command_32bit_bytearray.extend(COMMAND_SHIFT_DATA.to_bytes(1, 'big')) # COMMAND (0x02 = shift data)
     command_32bit_bytearray.extend(amount_of_bits_to_shift.to_bytes(4, 'big')) # Bits to shift
     command_32bit_bytearray.extend(payload.to_bytes(4, 'big')) # data to shift
     command_32bit_bytearray.extend(tms.to_bytes(1, 'big')) # TMS Value
-    #command_32bit_bytearray.extend(b'\x03') # ETX
 
     # print before transfer encoding
     #print(" ".join("{:02x}".format(b) for b in command_32bit_bytearray))
@@ -264,32 +230,42 @@ def main():
     # addr goes into arg1
 
     ## abstract command
-    cmdtype = 0b00000010            # cmdtype (8)           - 0x02 = cmdtype for "access memory"
-    aamvirtual = 0b0                # aamvirtual (1)        - no virtual memory translation
-    aamsize = 0b010                 # aamsize (3)           - 2dec means 32 bit data transfer
-    aampostincrement = 0b0          # aampostincrement (1)  - no postincrement
-    not_used_1 = 0b00  	            # not-used (2)          - not used
-    write = 0b0                     # write (1)             - write = 0, read = 1
-    target_specific = 0b00          # target-specific (2)   - target specific (not used)
-    not_used_2 = 0b00000000000000   # not-used (14)         - not used
+    haltreq = 0b0               # haltreq (1)           - Writing 0 clears the halt request bit for all currently selected harts. 
+    resumereq = 0b0             # resumereq (1)         - Writing 1 causes the currently selected harts to resume once
+    hartreset = 0b0             # hartreset (1)         - This optional field writes the reset bit for all the currently selected harts
+    ackhavereset = 0b0          # ackhavereset (1)      - 1: Clears havereset for any selected harts.
+    not_used_1 = 0b0  	        # not-used (1)          - not used
+    hasel = 0b0                 # hasel (1)             - Selects the definition of currently selected harts.
+    hartsello = 0b0000000000    # hartsello (10)        - The low 10 bits of hartsel
+    hartselhi = 0b0000000000    # hartselhi (10)        - The high 10 bits of hartsel
+    not_used_2 = 0b00           # not-used (2)          - not used
+    setresethaltreq = 0b0       # setresethaltreq (1)   - This optional field writes the halt-on-reset request bit for all currently selected harts
+    clrresethaltreq = 0b0       # clrresethaltreq (1)   - This optional field clears the halt-on-reset request bit for all currently selected harts.
+    ndmreset = 0b1              # ndmreset (1)          - This bit controls the reset signal from the DM to the rest of the system. 
+    dmactive = 0b0              # dmactive (1)          - This bit serves as a reset signal for the Debug Module itself.
 
-    abstract_command = 0
-    abstract_command = ((abstract_command << 8)  | cmdtype)
-    abstract_command = ((abstract_command << 1)  | aamvirtual)
-    abstract_command = ((abstract_command << 3)  | aamsize)
-    abstract_command = ((abstract_command << 1)  | aampostincrement)
-    abstract_command = ((abstract_command << 2)  | not_used_1)
-    abstract_command = ((abstract_command << 1)  | write)
-    abstract_command = ((abstract_command << 2)  | target_specific)
-    abstract_command = ((abstract_command << 14) | not_used_2)
+    dm_command = 0
+    dm_command = ((dm_command << 1)     | haltreq)
+    dm_command = ((dm_command << 1)     | resumereq)
+    dm_command = ((dm_command << 1)     | hartreset)
+    dm_command = ((dm_command << 1)     | ackhavereset)
+    dm_command = ((dm_command << 1)     | not_used_1)
+    dm_command = ((dm_command << 1)     | hasel)
+    dm_command = ((dm_command << 10)    | hartsello)
+    dm_command = ((dm_command << 10)    | hartselhi)
+    dm_command = ((dm_command << 2)     | not_used_2)
+    dm_command = ((dm_command << 1)     | setresethaltreq)
+    dm_command = ((dm_command << 1)     | clrresethaltreq)
+    dm_command = ((dm_command << 1)     | ndmreset)
+    dm_command = ((dm_command << 1)     | dmactive)
 
-    print("abstract_command is 0x{0:02x}".format(abstract_command))
+    print("dm_command is 0x{0:02x}".format(dm_command))
 
-    command_address = ADDRESS_OF_DM_COMMAND_REGISTER # 0x04 is register data_0
-    command_data = abstract_command # value to write into the register
+    command_address = ADDRESS_OF_DM_CONTROL_REGISTER # 0x04 is register data_0
+    command_data = dm_command # value to write into the register
     command_operator = 0b10 # operation to execute, 10b is write
 
-    command_bits = (command_address << 34) | (command_data << 2) | (command_operator << 0);
+    command_bits = (command_address << 34) | (dm_command << 2) | (command_operator << 0);
 
     #print("command_bits is 0x{0:02x}".format(command_bits))
 

@@ -197,11 +197,11 @@ def main():
     
     # value to write into the register
     #command_data = 0x00000000 # - 00000293
-    #command_data = 0x00000004 # - 00000313
+    command_data = 0x00000004 # - 00000313
     #command_data = 0x00000008 # - 000003b7
     #command_data = 0x0000000C # - 00238393
     #command_data = 0x00000010 # - 00728663
-    command_data = 0x00000014 # - 00128293
+    #command_data = 0x00000014 # - 00128293
     #command_data = 0x00000018 # - ff9ff06f
     #command_data = 0x0000001C # - 03402303
     #command_data = 0x00000020 # - 00134313
